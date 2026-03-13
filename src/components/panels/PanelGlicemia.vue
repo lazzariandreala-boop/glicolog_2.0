@@ -80,13 +80,28 @@ watch(() => app.openPanel, (p) => {
 
 function save() {
   if (!form.value.glic) { app.toast('Inserisci il valore glicemico'); return }
-  const entry = { type: 'glicemia', glic: Number(form.value.glic), trend: form.value.trend, when: form.value.when, note: form.value.note, ts: form.value.ts }
+  const glic = Number(form.value.glic)
+  const entry = { type: 'glicemia', glic, trend: form.value.trend, when: form.value.when, note: form.value.note, ts: form.value.ts }
   if (isEdit.value && app.editEntry) {
     entriesStore.update(app.editEntry.id, entry)
     app.toast('✅ Glicemia aggiornata')
   } else {
     entriesStore.add(entry)
-    app.toast('✅ Glicemia salvata — ' + form.value.glic + ' mg/dL')
+    app.toast('✅ Glicemia salvata — ' + glic + ' mg/dL')
+    const cfg = cfgStore.cfg
+    const glucoseTs = form.value.ts
+    if (glic < 70) {
+      app.triggerGlicAlert({ type: 'low', glic, glucoseTs, suggestedCarbs: 15,
+        title: '⚠️ Ipoglicemia!',
+        msg: `Glicemia ${glic} mg/dL. Assumi subito 15-20g di carboidrati a rapido assorbimento.`
+      })
+    } else if (cfg.targetMax && glic > cfg.targetMax && cfg.fsi) {
+      const units = Math.max(0.5, Math.round(((glic - (cfg.targetMin || 100)) / cfg.fsi) * 2) / 2)
+      app.triggerGlicAlert({ type: 'high', glic, glucoseTs, suggestedUnits: units,
+        title: '↑ Glicemia elevata',
+        msg: `Glicemia ${glic} mg/dL (target max ${cfg.targetMax} mg/dL). Correzione suggerita:`
+      })
+    }
   }
   close()
 }

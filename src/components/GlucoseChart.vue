@@ -191,7 +191,7 @@ onUnmounted(() => themeObserver?.disconnect())
 .gchart-tab {
   background: var(--card2); border: 1px solid var(--bdr);
   border-radius: 7px; color: var(--txt2); font-size: .72rem;
-  font-family: var(--sans); padding: 3px 9px; cursor: pointer; transition: background .15s;
+  font-family: var(--sans); padding: 3px 27px; cursor: pointer; transition: background .15s;
 }
 .gchart-tab.on { background: rgba(0,230,118,.1); border-color: var(--g); color: var(--g); font-weight: 600; }
 .gchart-canvas { display: block; width: 100%; border-radius: 12px; }

@@ -71,7 +71,10 @@ const totals = computed(() => {
 
 function addRow() { form.value.foodRows.push(defaultRow()) }
 function removeRow(i) { form.value.foodRows.splice(i, 1) }
-function updateRowMacros() {}
+function updateRowMacros(i, m) {
+  if (!form.value.foodRows[i]) return
+  Object.assign(form.value.foodRows[i], { c100: m.c, p100: m.p, g100: m.g, f100: m.f, k100: m.k })
+}
 
 watch(() => app.openPanel, (p) => {
   visible.value = p === 'spuntino'

@@ -18,19 +18,19 @@
         @click="goToDay(day)"
       >
         <span class="gcal-num">{{ day }}</span>
-        <div class="gcal-dots">
-          <span v-if="dayStatus(day).low"  class="gcal-dot gcal-dot-r"></span>
-          <span v-if="dayStatus(day).high" class="gcal-dot gcal-dot-o"></span>
-          <span v-if="dayStatus(day).ok"   class="gcal-dot gcal-dot-g"></span>
+        <span v-if="dayStatus(day).avg != null" class="gcal-avg" :class="avgColorClass(day)">{{ dayStatus(day).avg }}</span>
+        <div class="gcal-badges" v-if="dayStatus(day).lowCount || dayStatus(day).highCount">
+          <span v-if="dayStatus(day).lowCount"  class="gcal-badge gcal-badge-r">↓{{ dayStatus(day).lowCount }}</span>
+          <span v-if="dayStatus(day).highCount" class="gcal-badge gcal-badge-o">↑{{ dayStatus(day).highCount }}</span>
         </div>
       </div>
     </div>
 
     <!-- Legenda -->
     <div class="gcal-leg">
-      <span><span class="gcal-dot gcal-dot-r"></span> Ipoglicemia</span>
-      <span><span class="gcal-dot gcal-dot-o"></span> Iperglicemia</span>
-      <span><span class="gcal-dot gcal-dot-g"></span> In range</span>
+      <span style="color:var(--r)">↓ bassa</span>
+      <span style="color:var(--g)">◆ media</span>
+      <span style="color:var(--o)">↑ alta</span>
     </div>
   </div>
 </template>
@@ -89,17 +89,31 @@ const statusCache = computed(() => {
     const d = new Date(e.ts)
     if (d.getFullYear() !== viewYear.value || d.getMonth() !== viewMonth.value) return
     const dk = `${yStr}-${mStr}-${p2(d.getDate())}`
-    if (!cache[dk]) cache[dk] = { low: false, high: false, ok: false }
-    if (e.glic < tMin)      cache[dk].low  = true
-    else if (e.glic > tMax) cache[dk].high = true
-    else                    cache[dk].ok   = true
+    if (!cache[dk]) cache[dk] = { low: false, high: false, ok: false, lowCount: 0, highCount: 0, _sum: 0, _n: 0, avg: null }
+    cache[dk]._sum += e.glic
+    cache[dk]._n++
+    if (e.glic < tMin)      { cache[dk].low = true;  cache[dk].lowCount++ }
+    else if (e.glic > tMax) { cache[dk].high = true; cache[dk].highCount++ }
+    else                      cache[dk].ok = true
   })
+  Object.values(cache).forEach(v => { v.avg = v._n ? Math.round(v._sum / v._n) : null })
   return cache
 })
 
 function dayStatus(day) {
   const dk = `${viewYear.value}-${p2(viewMonth.value + 1)}-${p2(day)}`
-  return statusCache.value[dk] || { low: false, high: false, ok: false }
+  return statusCache.value[dk] || { low: false, high: false, ok: false, lowCount: 0, highCount: 0, avg: null }
+}
+
+function avgColorClass(day) {
+  const s = dayStatus(day)
+  const cfg = configStore.cfg
+  const tMin = cfg.targetMin || 100
+  const tMax = cfg.targetMax || 160
+  if (s.avg == null) return ''
+  if (s.avg < tMin) return 'gcal-avg-r'
+  if (s.avg > tMax) return 'gcal-avg-o'
+  return 'gcal-avg-g'
 }
 
 function dayClass(day) {
@@ -187,17 +201,17 @@ function goToDay(day) {
 .gcal-empty { min-height: 36px; }
 
 .gcal-day {
-  min-height: 36px;
+  min-height: 58px;
   border-radius: 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 2px;
+  justify-content: flex-start;
+  gap: 1px;
   cursor: pointer;
   border: 1px solid transparent;
   transition: background .12s;
-  padding: 2px 0;
+  padding: 4px 1px 3px;
 }
 .gcal-day:active { background: var(--bdr) }
 .gcal-future { opacity: .3; cursor: default; pointer-events: none; }
@@ -228,34 +242,46 @@ function goToDay(day) {
 }
 .gcal-selected .gcal-num { color: var(--g); font-weight: 700; }
 
-/* Pallini indicatori */
-.gcal-dots {
+/* Media glicemica */
+.gcal-avg {
+  font-size: .68rem;
+  font-family: var(--mono);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--txt2);
+}
+.gcal-avg-r { color: var(--r); }
+.gcal-avg-o { color: var(--o); }
+.gcal-avg-g { color: var(--g); }
+
+/* Badge episodi bassi/alti */
+.gcal-badges {
   display: flex;
-  gap: 2px;
-  min-height: 5px;
+  gap: 1px;
+  margin-top: 2px;
+  flex-wrap: wrap;
+  justify-content: center;
 }
-.gcal-dot {
-  display: block;
-  width: 5px; height: 5px;
-  border-radius: 50%;
-  flex-shrink: 0;
+.gcal-badge {
+  font-size: .55rem;
+  font-family: var(--mono);
+  font-weight: 700;
+  line-height: 1;
+  padding: 1px 2px;
+  border-radius: 3px;
 }
-.gcal-dot-r { background: var(--r); }
-.gcal-dot-o { background: var(--o); }
-.gcal-dot-g { background: var(--g); }
+.gcal-badge-r { color: var(--r); background: rgba(255,82,82,.1); }
+.gcal-badge-o { color: var(--o); background: rgba(255,171,64,.1); }
 
 /* Legenda */
 .gcal-leg {
   display: flex;
-  gap: 12px;
+  gap: 14px;
   justify-content: center;
   margin-top: 10px;
-  font-size: .7rem;
+  font-size: .68rem;
+  font-weight: 600;
   color: var(--txt2);
 }
-.gcal-leg span {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
+.gcal-leg span { display: flex; align-items: center; gap: 3px; }
 </style>

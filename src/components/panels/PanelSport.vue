@@ -105,6 +105,34 @@ const sportGroups = {
   'Arti marziali': [
     { value:'Boxe|8',              label:'Boxe' },
     { value:'Karate|6.5',          label:'Karate / Arti marziali' },
+    { value:'Judo|5.5',            label:'Judo / Lotta' },
+  ],
+  'Casa e giardino': [
+    { value:'Pulizie casa|3',      label:'Pulizie casa / spazzare / aspirare' },
+    { value:'Cucina|2',            label:'Cucinare' },
+    { value:'Giardinaggio|3.5',    label:'Giardinaggio / zappare' },
+    { value:'Taglio erba|4',       label:'Taglio erba (a piedi)' },
+    { value:'Lavori manuali|4',    label:'Fai da te / lavori manuali' },
+    { value:'Trasloco|5',          label:'Trasloco / spostare mobili' },
+    { value:'Spesa|2.5',           label:'Fare la spesa' },
+  ],
+  'Danza e sport vari': [
+    { value:'Danza|5',             label:'Danza / ballo' },
+    { value:'Zumba|6',             label:'Zumba / aerobica' },
+    { value:'Salto corda|10',      label:'Salto con la corda' },
+    { value:'Arrampicata|8',       label:'Arrampicata / boulder' },
+    { value:'Sci|7',               label:'Sci / snowboard' },
+    { value:'Pattinaggio|7',       label:'Pattinaggio su ghiaccio' },
+    { value:'Canoa|5',             label:'Canoa / kayak' },
+    { value:'Golf|4',              label:'Golf' },
+    { value:'Beach volley|5',      label:'Beach volley' },
+    { value:'Equitazione|5.5',     label:'Equitazione' },
+    { value:'Skateboard|5',        label:'Skateboard' },
+    { value:'Badminton|5.5',       label:'Badminton' },
+    { value:'Ping pong|4',         label:'Ping pong' },
+  ],
+  'Altro': [
+    { value:'Altro|4',             label:'Altra attività (MET ~4)' },
   ],
 }
 

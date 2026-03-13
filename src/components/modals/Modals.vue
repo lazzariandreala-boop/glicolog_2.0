@@ -68,6 +68,36 @@
       </div>
     </div>
   </div>
+
+  <!-- GLIC ALERT MODAL (hypo / hyper / insulin prompt) -->
+  <div class="glic-alert-bg" :class="{ on: app.showGlicAlert }" v-if="app.glicAlertData">
+    <div class="glic-alert-card">
+      <div class="glic-alert-icon">{{ app.glicAlertData.type === 'low' ? '🍬' : '💉' }}</div>
+      <div class="glic-alert-title">{{ app.glicAlertData.title }}</div>
+      <div class="glic-alert-msg">{{ app.glicAlertData.msg }}</div>
+      <div v-if="app.glicAlertData.type === 'high' || app.glicAlertData.type === 'insulin_prompt'" class="glic-alert-units">
+        <span class="glic-alert-units-val">{{ app.glicAlertData.suggestedUnits }}U</span>
+        <span class="glic-alert-units-lbl">{{ app.glicAlertData.type === 'high' ? 'insulina di correzione' : 'bolo suggerito' }}</span>
+      </div>
+      <!-- LOW: food chip selector -->
+      <div v-if="app.glicAlertData.type === 'low'">
+        <div class="glic-alert-carbs-lbl">Cosa vuoi assumere? (~15g carbo)</div>
+        <div class="glic-hypo-grid">
+          <button v-for="f in hypoFoods" :key="f.name" class="glic-hypo-chip" @click="doFoodCorrection(f)">
+            <span class="glic-hypo-ico">{{ f.ico }}</span>
+            <span class="glic-hypo-name">{{ f.label }}</span>
+            <span class="glic-hypo-qty">{{ f.qtyLabel }}</span>
+          </button>
+        </div>
+      </div>
+      <div class="glic-alert-btns">
+        <button v-if="app.glicAlertData.type === 'high'" class="glic-alert-yes" @click="doInsulinCorrection">💉 Fai correzione</button>
+        <button v-if="app.glicAlertData.type === 'insulin_prompt'" class="glic-alert-yes" @click="doInsulinBolo">💉 Fai bolo</button>
+        <button v-if="app.glicAlertData.type === 'low'" class="glic-alert-yes glic-alert-low" @click="doFoodCorrection(null)">🍬 Apri correzione</button>
+        <button class="glic-alert-no" @click="app.closeGlicAlert()">Ignora</button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -153,4 +183,67 @@ function addWater(ml) {
   app.showWaterModal = false
   app.toast(`💧 ${ml} ml aggiunti`)
 }
+
+// Glic alerts
+const hypoFoods = [
+  { ico: '🥤', label: 'Coca Cola',  qtyLabel: '150ml', name: 'Coca Cola',       grams: 150, c100: 10.6, p100: 0,   g100: 0,   f100: 0, k100: 42,  isDrink: true  },
+  { ico: '🧡', label: 'Fanta',      qtyLabel: '130ml', name: 'Fanta',           grams: 130, c100: 11.8, p100: 0,   g100: 0,   f100: 0, k100: 48,  isDrink: true  },
+  { ico: '🧃', label: 'Succo',      qtyLabel: '150ml', name: 'Succo di frutta', grams: 150, c100: 10,   p100: 0.3, g100: 0.1, f100: 0, k100: 43,  isDrink: true  },
+  { ico: '🥛', label: 'Latte',      qtyLabel: '300ml', name: 'Latte intero',    grams: 300, c100: 4.8,  p100: 3.3, g100: 3.6, f100: 0, k100: 65,  isDrink: true  },
+  { ico: '🫙', label: 'Zucchero',   qtyLabel: '15g',   name: 'Zucchero',        grams: 15,  c100: 99.8, p100: 0,   g100: 0,   f100: 0, k100: 399, isDrink: false },
+  { ico: '🍬', label: 'Caramelle',  qtyLabel: '17g',   name: 'Caramelle dure',  grams: 17,  c100: 87,   p100: 0,   g100: 0.5, f100: 0, k100: 348, isDrink: false },
+  { ico: '💊', label: 'Glucosio',   qtyLabel: '15g',   name: 'Glucosio',        grams: 15,  c100: 100,  p100: 0,   g100: 0,   f100: 0, k100: 400, isDrink: false },
+  { ico: '⚡', label: 'GlucoSprint',qtyLabel: '1 bst', name: 'GlucoSprint',     grams: 33,  c100: 52,   p100: 0,   g100: 0,   f100: 0, k100: 208, isDrink: false },
+]
+
+function doInsulinCorrection() {
+  const data = app.glicAlertData
+  const ts = data.glucoseTs ? data.glucoseTs + 60000 : Date.now()
+  app.closeGlicAlert()
+  app.openPanelPrefill('insulina', { insulinSubtype: 'Correzione', units: data.suggestedUnits, note: `Correzione glicemia ${data.glic} mg/dL`, ts })
+}
+function doInsulinBolo() {
+  const data = app.glicAlertData
+  const ts = data.glucoseTs ? data.glucoseTs + 60000 : Date.now()
+  app.closeGlicAlert()
+  app.openPanelPrefill('insulina', { insulinSubtype: 'Bolo', units: data.suggestedUnits, note: data.note || '', ts })
+}
+function doFoodCorrection(food = null) {
+  const data = app.glicAlertData
+  const ts = data?.glucoseTs ? data.glucoseTs + 60000 : Date.now()
+  app.closeGlicAlert()
+  if (food) {
+    const row = { id: Date.now() + Math.random(), name: food.name, grams: food.grams, c100: food.c100, p100: food.p100, g100: food.g100, f100: food.f100, k100: food.k100, isDrink: food.isDrink }
+    app.openPanelPrefill('correzione', { foodRows: [row], ts })
+  } else {
+    app.openPanelPrefill('correzione', { foodRows: [], ts })
+  }
+}
 </script>
+
+<style>
+.glic-alert-bg { position: fixed; inset: 0; background: rgba(0,0,0,.72); z-index: 9999; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity .22s }
+.glic-alert-bg.on { opacity: 1; pointer-events: all }
+.glic-alert-card { background: var(--bg2); border: 1px solid var(--bdr2); border-radius: 20px; padding: 28px 22px 22px; max-width: 340px; width: calc(100% - 40px); text-align: center }
+.glic-alert-icon { font-size: 2.8rem; margin-bottom: 10px }
+.glic-alert-title { font-size: 1.15rem; font-weight: 800; color: var(--txt); margin-bottom: 8px }
+.glic-alert-msg { font-size: .85rem; color: var(--txt2); line-height: 1.5; margin-bottom: 16px }
+.glic-alert-units { background: rgba(206,147,216,.1); border: 1px solid rgba(206,147,216,.3); border-radius: 14px; padding: 14px 18px; margin-bottom: 18px }
+.glic-alert-units-val { font-size: 2.2rem; font-weight: 900; color: var(--p); display: block }
+.glic-alert-units-lbl { font-size: .75rem; color: var(--txt2); text-transform: uppercase; letter-spacing: .5px }
+.glic-alert-carbs { background: rgba(255,171,64,.08); border: 1px solid rgba(255,171,64,.25); border-radius: 14px; padding: 12px 16px; margin-bottom: 18px }
+.glic-alert-carbs-val { font-size: 1.1rem; font-weight: 700; color: var(--o); margin-bottom: 4px }
+.glic-alert-carbs-tip { font-size: .72rem; color: var(--txt2); line-height: 1.5 }
+.glic-alert-btns { display: flex; flex-direction: column; gap: 8px }
+.glic-alert-yes { width: 100%; border: none; border-radius: 12px; font-family: var(--sans); font-weight: 700; font-size: .95rem; padding: 14px; cursor: pointer; background: var(--p); color: #000; transition: opacity .12s }
+.glic-alert-yes.glic-alert-low { background: var(--o) }
+.glic-alert-yes:active { opacity: .85 }
+.glic-alert-no { width: 100%; background: none; border: 1px solid var(--bdr2); border-radius: 12px; color: var(--txt2); font-family: var(--sans); font-size: .88rem; padding: 12px; cursor: pointer }
+.glic-alert-carbs-lbl { font-size: .75rem; font-weight: 700; color: var(--txt2); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; text-align: left }
+.glic-hypo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 14px }
+.glic-hypo-chip { background: var(--card); border: 1px solid var(--bdr); border-radius: 10px; padding: 8px 6px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; transition: background .12s; font-family: var(--sans) }
+.glic-hypo-chip:active { background: rgba(255,171,64,.12); border-color: var(--o) }
+.glic-hypo-ico { font-size: 1.4rem; line-height: 1 }
+.glic-hypo-name { font-size: .72rem; font-weight: 600; color: var(--txt); line-height: 1.2 }
+.glic-hypo-qty { font-size: .65rem; color: var(--o); font-family: var(--mono); font-weight: 600 }
+</style>

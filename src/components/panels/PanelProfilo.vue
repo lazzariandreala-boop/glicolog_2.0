@@ -1,19 +1,14 @@
 <template>
   <PanelBase :visible="visible">
-    <div class="pt">⚙️ Profilo personale</div>
-    <div style="font-size:.72rem;color:var(--txt2);margin-bottom:14px;line-height:1.5">I tuoi parametri per suggerimenti e target nutrizionali.</div>
+    <div class="pt">⚙️ Profilo</div>
 
     <div class="pdiv">📏 Dati corporei</div>
-    <div class="g2">
-      <div class="fr"><span class="fl">Età</span><input class="fi" type="number" inputmode="numeric" v-model.number="form.age" placeholder="32" /></div>
-      <div class="fr"><span class="fl">Peso (kg)</span><input class="fi" type="number" inputmode="decimal" v-model.number="form.weight" placeholder="80" /></div>
-    </div>
-    <div class="g2">
-      <div class="fr"><span class="fl">Altezza (cm)</span><input class="fi" type="number" inputmode="numeric" v-model.number="form.height" placeholder="174" /></div>
-      <div class="fr">
-        <span class="fl">Sesso</span>
-        <SegmentControl v-model="form.sex" :options="[{value:'M',label:'♂ M'},{value:'F',label:'♀ F'}]" />
-      </div>
+    <div class="fr"><span class="fl">Età</span><input class="fi" type="number" inputmode="numeric" v-model.number="form.age" placeholder="es. 32" /></div>
+    <div class="fr"><span class="fl">Peso (kg)</span><input class="fi" type="number" inputmode="decimal" v-model.number="form.weight" placeholder="es. 80" /></div>
+    <div class="fr"><span class="fl">Altezza (cm)</span><input class="fi" type="number" inputmode="numeric" v-model.number="form.height" placeholder="es. 174" /></div>
+    <div class="fr">
+      <span class="fl">Sesso</span>
+      <SegmentControl v-model="form.sex" :options="[{value:'M',label:'♂ M'},{value:'F',label:'♀ F'}]" />
     </div>
     <div class="fr">
       <span class="fl">Attività fisica</span>
@@ -25,21 +20,17 @@
     </div>
 
     <div class="pdiv">🩸 Parametri glicemici</div>
-    <div class="g2">
-      <div class="fr"><span class="fl">Target MIN</span><input class="fi" type="number" inputmode="numeric" v-model.number="form.targetMin" placeholder="100" /></div>
-      <div class="fr"><span class="fl">Target MAX</span><input class="fi" type="number" inputmode="numeric" v-model.number="form.targetMax" placeholder="160" /></div>
+    <div class="fr"><span class="fl">Target MIN (mg/dL)</span><input class="fi" type="number" inputmode="numeric" v-model.number="form.targetMin" placeholder="es. 100" /></div>
+    <div class="fr"><span class="fl">Target MAX (mg/dL)</span><input class="fi" type="number" inputmode="numeric" v-model.number="form.targetMax" placeholder="es. 160" /></div>
+    <div class="fr">
+      <span class="fl">FSI — mg/dL per 1U</span>
+      <input class="fi" type="number" inputmode="decimal" step="0.5" v-model.number="form.fsi" placeholder="es. 30" />
+      <div class="fi-hint">Di quanti mg/dL scendi con 1 unità</div>
     </div>
-    <div class="g2">
-      <div class="fr">
-        <span class="fl">FSI (mg/dL per 1U)</span>
-        <input class="fi" type="number" inputmode="decimal" step="0.5" v-model.number="form.fsi" placeholder="30" />
-        <div class="fi-hint">Di quanti mg/dL scendi con 1U</div>
-      </div>
-      <div class="fr">
-        <span class="fl">I:C (g carbo per 1U)</span>
-        <input class="fi" type="number" inputmode="decimal" step="0.5" v-model.number="form.ic" placeholder="7" />
-        <div class="fi-hint">Grammi coperti da 1U</div>
-      </div>
+    <div class="fr">
+      <span class="fl">I:C — g carbo per 1U</span>
+      <input class="fi" type="number" inputmode="decimal" step="0.5" v-model.number="form.ic" placeholder="es. 7" />
+      <div class="fi-hint">Grammi coperti da 1 unità</div>
     </div>
     <div class="fr">
       <span class="fl">Insulina rapida</span>
@@ -58,7 +49,7 @@
     <div class="pdiv">🍺 Limite alcolico</div>
     <div class="fr">
       <span class="fl">Unità max a settimana</span>
-      <input class="fi" type="number" inputmode="numeric" v-model.number="form.alcMax" placeholder="5" />
+      <input class="fi" type="number" inputmode="numeric" v-model.number="form.alcMax" placeholder="es. 5" />
       <div class="fi-hint">1U ≈ 1 spritz · 1 calice vino · 1 birra 33cl</div>
     </div>
 
@@ -109,6 +100,7 @@
 import { ref, computed, watch } from 'vue'
 import { useAppStore } from '@/stores/app.js'
 import { useEntriesStore, useConfigStore, useStepsStore } from '@/stores/index.js'
+import { CFGKEY } from '@/data/constants.js'
 import PanelBase from './PanelBase.vue'
 import SegmentControl from '@/components/shared/SegmentControl.vue'
 import {
@@ -138,7 +130,7 @@ const goalOpts = [
 const rapidaOpts = ['Humalog','Novorapid','Fiasp','Apidra','Lyumjev','Admelog','Regular']
 const basaleOpts = ['Lantus','Toujeo','Tresiba','Levemir','Basaglar','Semglee','Ryzodeg']
 
-const form = ref({ ...cfgStore.cfg, activity: String(cfgStore.cfg.activity) })
+const form = ref({ age: null, weight: null, height: null, sex: 'M', activity: '1.375', goal: 'maintain', targetMin: null, targetMax: null, fsi: null, ic: null, insRapida: 'Humalog', insBasale: '', alcMax: null })
 
 // TDEE calcolato (Harris-Benedict)
 const tdee = computed(() => {
@@ -202,10 +194,25 @@ async function doImport() {
 watch(() => app.openPanel, (p) => {
   visible.value = p === 'profilo'
   if (p === 'profilo') {
-    const cfg = cfgStore.cfg
-    form.value = { ...cfg, activity: String(cfg.activity) }
+    // Load only from localStorage — if not saved, show empty (no hardcoded defaults)
+    let saved = {}
+    try { saved = JSON.parse(localStorage.getItem(CFGKEY) || '{}') } catch {}
+    form.value = {
+      age:       saved.age       ?? null,
+      weight:    saved.weight    ?? null,
+      height:    saved.height    ?? null,
+      sex:       saved.sex       ?? 'M',
+      activity:  String(saved.activity ?? 1.375),
+      goal:      saved.goal      ?? 'maintain',
+      targetMin: saved.targetMin ?? null,
+      targetMax: saved.targetMax ?? null,
+      fsi:       saved.fsi       ?? null,
+      ic:        saved.ic        ?? null,
+      insRapida: saved.insRapida ?? 'Humalog',
+      insBasale: saved.insBasale ?? '',
+      alcMax:    saved.alcMax    ?? null,
+    }
     currentTheme.value = appStore.theme
-    // Aggiorna i campi Gist con i valori correnti
     gistToken.value = getToken()
     gistId.value    = getGistId()
     lastSync.value  = getLastSync()
@@ -213,10 +220,12 @@ watch(() => app.openPanel, (p) => {
 })
 
 function save() {
+  const base = cfgStore.cfg
   const data = {
+    ...base,
     ...form.value,
     activity: parseFloat(form.value.activity) || 1.375,
-    kcal: tdee.value || cfgStore.cfg.kcal,
+    kcal: tdee.value || base.kcal,
     protein: Math.round((tdee.value || 2000) * 0.25 / 4),
     carbs: Math.round((tdee.value || 2000) * 0.40 / 4),
     fat: Math.round((tdee.value || 2000) * 0.30 / 9),

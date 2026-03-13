@@ -67,10 +67,14 @@ watch(() => app.openPanel, (p) => {
   visible.value = p === 'insulina'
   if (p === 'insulina') {
     const e = app.editEntry
-    isEdit.value = !!e
-    if (e) {
+    if (e && e._prefill) {
+      isEdit.value = false
+      form.value = { insulinSubtype: e.insulinSubtype || 'Bolo', insulinType: cfgStore.cfg.insRapida || 'Humalog', units: e.units || null, note: e.note || '', ts: e.ts || Date.now() }
+    } else if (e) {
+      isEdit.value = true
       form.value = { insulinSubtype: e.insulinSubtype||'Bolo', insulinType: e.insulinType||'Humalog', units: e.units, note: e.note||'', ts: e.ts }
     } else {
+      isEdit.value = false
       form.value = { insulinSubtype: 'Bolo', insulinType: cfgStore.cfg.insRapida || 'Humalog', units: null, note: '', ts: Date.now() }
     }
     nextTick(() => inputRef.value?.focus())

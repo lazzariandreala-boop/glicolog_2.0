@@ -77,15 +77,25 @@ const totals = computed(() => {
 
 function addRow() { form.value.foodRows.push(defaultRow()) }
 function removeRow(i) { form.value.foodRows.splice(i, 1) }
-function updateRowMacros(i, m) { if (form.value.foodRows[i]) form.value.foodRows[i].c100 = m.c ? Math.round(m.c / (m.grams||1) * 100 * 10) / 10 : form.value.foodRows[i].c100 }
+function updateRowMacros(i, m) {
+  if (!form.value.foodRows[i]) return
+  Object.assign(form.value.foodRows[i], { c100: m.c, p100: m.p, g100: m.g, f100: m.f, k100: m.k })
+}
 
 watch(() => app.openPanel, (p) => {
   visible.value = p === 'correzione'
   if (p === 'correzione') {
     const e = app.editEntry
-    isEdit.value = !!e
-    if (e) form.value = { foodRows: e.foodRows?.length ? e.foodRows.map(r => ({ ...defaultRow(), ...r })) : [defaultRow()], mC: e.carbs || null, mP: e.protein || null, mG: e.fat || null, mF: e.fiber || null, ts: e.ts }
-    else form.value = { foodRows: [defaultRow()], mC: null, mP: null, mG: null, mF: null, ts: Date.now() }
+    if (e && e._prefill) {
+      isEdit.value = false
+      form.value = { foodRows: e.foodRows?.length ? e.foodRows : [defaultRow()], mC: null, mP: null, mG: null, mF: null, ts: e.ts || Date.now() }
+    } else if (e) {
+      isEdit.value = true
+      form.value = { foodRows: e.foodRows?.length ? e.foodRows.map(r => ({ ...defaultRow(), ...r })) : [defaultRow()], mC: e.carbs || null, mP: e.protein || null, mG: e.fat || null, mF: e.fiber || null, ts: e.ts }
+    } else {
+      isEdit.value = false
+      form.value = { foodRows: [defaultRow()], mC: null, mP: null, mG: null, mF: null, ts: Date.now() }
+    }
   }
 })
 

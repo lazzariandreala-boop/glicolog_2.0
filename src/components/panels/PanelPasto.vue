@@ -154,8 +154,8 @@ function addRow() { form.value.foodRows.push(defaultRow()) }
 function removeRow(i) { form.value.foodRows.splice(i, 1) }
 function updateRowMacros(i, m) {
   if (!form.value.foodRows[i]) return
-  form.value.foodRows[i].c100 = m.c ? Math.round(m.c / (m.grams||1) * 100 * 10) / 10 : form.value.foodRows[i].c100
-  // keep raw 100g values from the pick, just store them on the row
+  // m.c/p/g/f/k are per-100g values emitted by FoodRow
+  Object.assign(form.value.foodRows[i], { c100: m.c, p100: m.p, g100: m.g, f100: m.f, k100: m.k })
 }
 
 watch(() => app.openPanel, (p) => {

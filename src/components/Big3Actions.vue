@@ -8,29 +8,26 @@
       <span class="ico">🍎</span><span class="lbl">Spuntino</span>
     </button>
     <button class="ba ba-glic" @click="app.openPanelFor('glicemia')">
-      <span class="ico">💉</span><span class="lbl">Glicemia</span>
+      <span class="ico">🩸</span><span class="lbl">Glicemia</span>
     </button>
     <button class="ba ba-ins" @click="app.openPanelFor('insulina')">
-      <span class="ico">🩺</span><span class="lbl">Insulina</span>
+      <span class="ico">💉</span><span class="lbl">Insulina</span>
     </button>
   </div>
 
   <!-- GRIGLIA AZIONI SECONDARIE -->
-  <div class="acts" style="grid-template-columns:repeat(5,1fr)">
+  <div class="acts" style="grid-template-columns:repeat(4,1fr)">
     <button class="ba ba-o" @click="app.openPanelFor('correzione')">
-      <span class="plus">+</span><span class="ico">🍬</span><span class="lbl">Cibo</span>
-    </button>
-    <button class="ba ba-i" @click="app.openPanelFor('alcool')">
-      <span class="plus">+</span><span class="ico">🍷</span><span class="lbl">Alcool</span>
+      <span class="ico">🍬</span><span class="lbl">Correzione</span>
     </button>
     <button class="ba ba-aperi" @click="app.openPanelFor('aperitivi')">
-      <span class="plus">+</span><span class="ico">🥂</span><span class="lbl">Aperitivo</span>
+      <span class="ico">🥂</span><span class="lbl">Aperitivo</span>
     </button>
     <button class="ba ba-sport" @click="app.openPanelFor('sport')">
-      <span class="plus">+</span><span class="ico">🏃</span><span class="lbl">Sport</span>
+      <span class="ico">🏃</span><span class="lbl">Sport</span>
     </button>
     <button class="ba ba-w" @click="app.showWaterModal = true">
-      <span class="plus">+</span><span class="ico">💧</span><span class="lbl">Acqua</span>
+      <span class="ico">💧</span><span class="lbl">Acqua</span>
     </button>
   </div>
 </template>

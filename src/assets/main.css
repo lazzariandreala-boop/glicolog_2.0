@@ -86,7 +86,7 @@ body { font-family: var(--sans); color: var(--txt); background: var(--bg); min-h
 
 /* ── ACTION BUTTONS ── */
 .acts { display: grid; gap: 6px; padding: 8px 14px 0 }
-.ba { background: var(--card); border: 1px solid var(--bdr); border-radius: 14px; padding: 13px 4px 11px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; position: relative; overflow: hidden; transition: transform .12s, background .12s }
+.ba { background: var(--card); border: 1px solid var(--bdr); border-radius: 14px; padding: 18px 4px 11px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; position: relative; overflow: hidden; transition: transform .12s, background .12s }
 .ba::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; border-radius: 1px }
 .ba:active { transform: scale(0.92) }
 .ba-p::after    { background: var(--g) }    .ba-p:active    { background: #0b160d }
@@ -219,9 +219,9 @@ body { font-family: var(--sans); color: var(--txt); background: var(--bg); min-h
 /* Elementi full-width dentro .fr: vanno sempre su riga propria */
 .fr > .food-rows, .fr > .add-food-row, .fr > .food-rows-total,
 .fr > .g2, .fr > .g3, .fr > .g4, .fr > .mbox { flex: 0 0 100%; min-width: 0 }
-/* SegmentControl e TrendSelector: si espandono nel flex */
-.fr > .seg { flex: 1; min-width: 0 }
-.fr > .trend-sel { flex: 0 0 auto }
+/* SegmentControl e TrendSelector: occupano tutta la riga */
+.fr > .seg { flex: 0 0 100%; min-width: 0 }
+.fr > .trend-sel { flex: 0 0 100%; min-width: 0 }
 /* .fr dentro celle di grid: layout colonna (label sopra, input sotto) */
 .g2 > .fr, .g3 > .fr, .g4 > .fr { flex-direction: column; align-items: flex-start; padding-bottom: 0; border-bottom: none; gap: 4px; margin-bottom: 0 }
 .g2 > .fr > .fi, .g3 > .fr > .fi, .g4 > .fr > .fi { width: 100%; min-width: 0; flex: none }
@@ -242,23 +242,31 @@ body { font-family: var(--sans); color: var(--txt); background: var(--bg); min-h
 .sb.p.on { border-color: var(--p); color: var(--p); background: rgba(206,147,216,.06) }
 
 /* ── TREND SELECTOR ── */
-.trend-sel { display: flex; gap: 5px }
-.tsb { background: var(--card); border: 1px solid var(--bdr); border-radius: 9px; color: var(--txt2); font-size: 1.1rem; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all .12s }
+.trend-sel { display: flex; gap: 5px; width: 100% }
+.tsb { background: var(--card); border: 1px solid var(--bdr); border-radius: 9px; font-size: 1.1rem; flex: 1; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all .12s }
 .tsb.on { font-weight: 700 }
-.tsb.t-u2.on { border-color: #ef4444; background: rgba(239,68,68,.12); color: #ef4444 }
-.tsb.t-u1.on { border-color: #f59e0b; background: rgba(245,158,11,.12); color: #f59e0b }
-.tsb.t-fl.on { border-color: #64748b; background: rgba(100,116,139,.12); color: #94a3b8 }
-.tsb.t-d1.on { border-color: #3b82f6; background: rgba(59,130,246,.12); color: #3b82f6 }
-.tsb.t-d2.on { border-color: #8b5cf6; background: rgba(139,92,246,.12); color: #8b5cf6 }
+/* ⬇ drop fast = red | ↘ drop slow = orange-red | → stable = green | ↗ rise slow = yellow | ⬆ rise fast = orange */
+.tsb.t-d2 { color: rgba(239,68,68,.45) }
+.tsb.t-d1 { color: rgba(251,113,33,.45) }
+.tsb.t-fl { color: rgba(34,197,94,.45) }
+.tsb.t-u1 { color: rgba(234,179,8,.45) }
+.tsb.t-u2 { color: rgba(249,115,22,.45) }
+.tsb.t-d2.on { border-color: #ef4444; background: rgba(239,68,68,.14); color: #ef4444 }
+.tsb.t-d1.on { border-color: #fb7121; background: rgba(251,113,33,.14); color: #fb7121 }
+.tsb.t-fl.on { border-color: #22c55e; background: rgba(34,197,94,.14); color: #22c55e }
+.tsb.t-u1.on { border-color: #eab308; background: rgba(234,179,8,.14); color: #eab308 }
+.tsb.t-u2.on { border-color: #f97316; background: rgba(249,115,22,.14); color: #f97316 }
 
 /* ── BUTTONS ── */
 .bsave { width: 100%; background: var(--g); color: #000; border: none; border-radius: 12px; font-family: var(--sans); font-weight: 700; font-size: 1rem; padding: 15px; cursor: pointer; margin-top: 10px; transition: opacity .12s }
 .bsave:active { opacity: .85 }
-.bdel { width: 100%; background: none; border: 1px solid rgba(255,82,82,.3); border-radius: 12px; color: rgba(255,82,82,.7); font-family: var(--sans); font-size: .88rem; padding: 12px; cursor: pointer; margin-top: 8px; transition: all .12s }
+.bdel { width: 100%; background: none; border: 1px solid rgba(255,82,82,.3); border-radius: 12px; color: rgba(255,82,82,.7); font-family: var(--sans); font-size: .88rem; padding: 12px; cursor: pointer; margin-top: 10px; transition: all .12s }
 .bdel:active { background: rgba(255,82,82,.07) }
 
 /* ── TIME ROW ── */
-.tr-grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; min-width: 0 }
+.tr-fr { flex-direction: column; align-items: stretch }
+.tr-lbl { width: 100% }
+.tr-grid { width: 100%; display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; min-width: 0 }
 .tr-grid .fi { min-width: 0; padding: 10px 10px }
 .tr-now { background: var(--g); border: none; border-radius: 10px; color: #000; font-family: var(--sans); font-weight: 700; font-size: .72rem; padding: 10px 12px; cursor: pointer; white-space: nowrap; letter-spacing: .4px }
 .tr-now:active { opacity: .85 }

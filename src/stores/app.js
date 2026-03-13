@@ -43,10 +43,21 @@ export const useAppStore = defineStore('app', () => {
   const showScanner = ref(false)
   const scannerTarget = ref(null) // 'P' | 'S'
 
+  // Glicemia alert (hypo / hyper / insulin_prompt)
+  const showGlicAlert = ref(false)
+  const glicAlertData = ref(null)
+  function triggerGlicAlert(data) { glicAlertData.value = data; showGlicAlert.value = true }
+  function closeGlicAlert() { showGlicAlert.value = false; glicAlertData.value = null }
+
   // Panel open/close
   function openPanelFor(name, entry = null) {
     openPanel.value = name
     editEntry.value = entry
+  }
+  // Open panel with pre-filled values (not editing an existing entry)
+  function openPanelPrefill(name, data) {
+    openPanel.value = name
+    editEntry.value = { _prefill: true, ...data }
   }
   function closePanel() {
     openPanel.value = null
@@ -70,6 +81,7 @@ export const useAppStore = defineStore('app', () => {
     theme, setTheme,
     showDeleteConfirm, deleteTarget, deleteMsg, showStepsModal,
     showWaterModal, showPdfModal, showScanner, scannerTarget,
-    openPanelFor, closePanel, confirmDelete, cancelDelete
+    showGlicAlert, glicAlertData, triggerGlicAlert, closeGlicAlert,
+    openPanelFor, openPanelPrefill, closePanel, confirmDelete, cancelDelete
   }
 })

@@ -1,6 +1,6 @@
 <template>
-  <div class="fr">
-    <span class="fl">📅 Data &amp; Ora</span>
+  <div class="fr tr-fr">
+    <span class="fl tr-lbl">📅 Data &amp; Ora</span>
     <div class="tr-grid">
       <input type="date" class="fi" v-model="localDate" />
       <input type="time" class="fi" v-model="localTime" />
