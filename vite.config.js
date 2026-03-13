@@ -25,6 +25,7 @@ export default defineConfig({
       }
     })
   ],
+  base: '/glicolog_2.0/',
   resolve: {
     alias: { '@': '/src' }
   }

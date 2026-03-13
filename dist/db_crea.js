@@ -3,7 +3,7 @@
 // c=carboidrati, p=proteine, g=grassi, f=fibre, k=kcal, n=porzione
 // ═══════════════════════════════════════════════════════════════
 
-const CREA_DB = {
+window.CREA_DB = {
   // --- FARINE E CEREALI PRIMARI (A CRUDO) ---
   'farina di frumento tipo 00': { c: 77.3, p: 9.7, g: 1, f: 2.2, k: 340, n: '100g' },
   'farina di frumento tipo 0': { c: 75.5, p: 11.5, g: 1.2, f: 2.9, k: 341, n: '100g' },
@@ -231,7 +231,7 @@ const CREA_DB = {
 
 };
 
-const CLAUDE_DB = {
+window.CLAUDE_DB = {
   'spaghetti n.5': { c: 72.2, p: 12.0, g: 1.5, f: 3.0, k: 353, n: '80g', cat: 'pasta_secca' },
   'spaghetti n.3': { c: 72.0, p: 12.2, g: 1.4, f: 2.8, k: 352, n: '80g', cat: 'pasta_secca' },
   'spaghetti n.7 grossi': { c: 72.5, p: 12.0, g: 1.5, f: 3.0, k: 353, n: '80g', cat: 'pasta_secca' },
@@ -6956,7 +6956,7 @@ const CLAUDE_DB = {
 // c = carboidrati, p = proteine, g = grassi, f = fibre, k = kcal
 // n = nota porzione tipica
 // ═══════════════════════════════════════════════════════════════
-const FOODDB0={
+window.FOODDB0={
 
 // ── PASTA E CEREALI (A CRUDO) ── 
 'pasta a crudo':{c:72,p:12,g:1.5,f:3,k:352,n:'80g'},

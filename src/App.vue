@@ -110,7 +110,7 @@ import PanelProfilo   from '@/components/panels/PanelProfilo.vue'
 
 const appStore = useAppStore()
 
-const statsOpen = ref(false)
+const statsOpen = ref(true)
 const monthOpen = ref(false)
 const showInstallBanner = ref(false)
 const ptrBar = ref(null)

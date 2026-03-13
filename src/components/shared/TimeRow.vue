@@ -1,9 +1,11 @@
 <template>
-  <div class="time-row">
-    <span class="fl">📅 Data &amp; ora</span>
-    <input type="date" class="fi date-input" v-model="localDate" />
-    <input type="time" class="fi time-input" v-model="localTime" />
-    <button class="time-now-btn" @click="setNow">Adesso</button>
+  <div class="fr">
+    <span class="fl">📅 Data &amp; Ora</span>
+    <div class="tr-grid">
+      <input type="date" class="fi" v-model="localDate" />
+      <input type="time" class="fi" v-model="localTime" />
+      <button class="time-now-btn tr-now" @click="setNow">ADESSO</button>
+    </div>
   </div>
 </template>
 

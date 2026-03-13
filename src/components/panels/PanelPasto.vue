@@ -109,7 +109,7 @@ const defaultRow = () => ({ id: Date.now() + Math.random(), name: '', grams: 0, 
 const form = ref({
   mealType: 'Pranzo',
   foodRows: [defaultRow()],
-  glic: null, trend: '',
+  glic: null, trend: '→',
   boloOverride: null,
   mC: null, mP: null, mG: null, mF: null,
   ts: Date.now()
@@ -175,7 +175,7 @@ watch(() => app.openPanel, (p) => {
     } else {
       const h = new Date().getHours()
       const mt = h < 11 ? 'Colazione' : h < 15 ? 'Pranzo' : 'Cena'
-      form.value = { mealType: mt, foodRows: [defaultRow()], glic: null, trend: '', boloOverride: null, mC: null, mP: null, mG: null, mF: null, ts: Date.now() }
+      form.value = { mealType: mt, foodRows: [defaultRow()], glic: null, trend: '→', boloOverride: null, mC: null, mP: null, mG: null, mF: null, ts: Date.now() }
     }
   }
 })

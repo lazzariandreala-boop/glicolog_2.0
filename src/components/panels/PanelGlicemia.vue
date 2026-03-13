@@ -62,7 +62,7 @@ const whenOpts = [
   { value: 'notte', label: 'Notte' },
 ]
 
-const form = ref({ glic: null, trend: '', when: 'random', note: '', ts: Date.now() })
+const form = ref({ glic: null, trend: '→', when: 'random', note: '', ts: Date.now() })
 
 watch(() => app.openPanel, (p) => {
   visible.value = p === 'glicemia'
@@ -72,7 +72,7 @@ watch(() => app.openPanel, (p) => {
     if (e) {
       form.value = { glic: e.glic, trend: e.trend||'', when: e.when||'random', note: e.note||'', ts: e.ts }
     } else {
-      form.value = { glic: null, trend: '', when: 'random', note: '', ts: Date.now() }
+      form.value = { glic: null, trend: '→', when: 'random', note: '', ts: Date.now() }
     }
     nextTick(() => inputRef.value?.focus())
   }

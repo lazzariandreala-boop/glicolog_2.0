@@ -89,12 +89,17 @@ body { font-family: var(--sans); color: var(--txt); background: var(--bg); min-h
 .ba { background: var(--card); border: 1px solid var(--bdr); border-radius: 14px; padding: 13px 4px 11px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; position: relative; overflow: hidden; transition: transform .12s, background .12s }
 .ba::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; border-radius: 1px }
 .ba:active { transform: scale(0.92) }
-.ba-p::after { background: var(--g) } .ba-p:active { background: #0b160d }
-.ba-s::after { background: var(--o) } .ba-s:active { background: #16100a }
-.ba-g::after { background: var(--b) } .ba-g:active { background: #081420 }
-.ba-i::after { background: var(--p) } .ba-i:active { background: #130c1a }
-.ba-w::after { background: linear-gradient(90deg,#29b6f6,rgba(41,182,246,.5)) }
-.ba-aperi::after { background: var(--o) }
+.ba-p::after    { background: var(--g) }    .ba-p:active    { background: #0b160d }
+.ba-s::after    { background: var(--o) }    .ba-s:active    { background: #16100a }
+.ba-glic::after { background: var(--b) }    .ba-glic:active { background: #081420 }
+.ba-ins::after  { background: var(--p) }    .ba-ins:active  { background: #130c1a }
+.ba-o::after    { background: var(--o) }    .ba-o:active    { background: #16100a }
+.ba-i::after    { background: var(--alc) }  .ba-i:active    { background: #1a0e09 }
+.ba-aperi::after{ background: var(--nut) }  .ba-aperi:active{ background: #081413 }
+.ba-sport::after{ background: #03a9f4 }     .ba-sport:active{ background: #031820 }
+.ba-w::after    { background: var(--b) }    .ba-w:active    { background: #081420 }
+/* legacy alias */
+.ba-g::after    { background: var(--b) }    .ba-g:active    { background: #081420 }
 .ba .ico { font-size: 1.4rem; line-height: 1 }
 .ba .plus { font-family: var(--mono); font-size: 0.7rem; color: var(--txt2); font-weight: 500 }
 .ba .lbl { font-size: 0.75rem; font-weight: 600; color: var(--txt2); letter-spacing: 0.1px; text-align: center; line-height: 1.3 }
@@ -203,11 +208,12 @@ body { font-family: var(--sans); color: var(--txt); background: var(--bg); min-h
 .panel-day-banner.on { display: block }
 
 /* ── FORM ELEMENTS ── */
-.fr { margin-bottom: 14px }
-.fl { display: block; font-size: .72rem; font-weight: 700; color: var(--txt2); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px }
-.fi { width: 100%; background: var(--card); border: 1px solid var(--bdr2); border-radius: 11px; color: var(--txt); font-family: var(--sans); font-size: .95rem; padding: 12px 14px; outline: none; transition: border-color .15s, box-shadow .15s }
+.fr { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--bdr) }
+.fr:last-of-type { border-bottom: none }
+.fl { flex: 0 0 auto; font-size: .72rem; font-weight: 700; color: var(--txt2); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 0; white-space: nowrap }
+.fi { flex: 1; min-width: 140px; background: var(--card); border: 1px solid var(--bdr2); border-radius: 11px; color: var(--txt); font-family: var(--sans); font-size: .95rem; padding: 12px 14px; outline: none; transition: border-color .15s, box-shadow .15s }
 .fi:focus { border-color: var(--g); box-shadow: 0 0 0 3px rgba(0,230,118,.08) }
-.fi-hint { font-size: .67rem; color: var(--txt2); margin-top: 4px; line-height: 1.4 }
+.fi-hint { flex-basis: 100%; font-size: .67rem; color: var(--txt2); margin-top: 2px; line-height: 1.4 }
 .fi.big { font-size: 2rem; font-weight: 500; font-family: var(--mono); text-align: center; padding: 16px }
 .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
 .g4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px }
@@ -239,10 +245,10 @@ body { font-family: var(--sans); color: var(--txt); background: var(--bg); min-h
 .bdel:active { background: rgba(255,82,82,.07) }
 
 /* ── TIME ROW ── */
-.time-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px }
-.time-row .fl { white-space: nowrap; margin-bottom: 0; min-width: 80px }
-.date-input { max-width: 140px }
-.time-input { max-width: 100px }
+.tr-grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; min-width: 0 }
+.tr-grid .fi { min-width: 0; padding: 10px 10px }
+.tr-now { background: var(--g); border: none; border-radius: 10px; color: #000; font-family: var(--sans); font-weight: 700; font-size: .72rem; padding: 10px 12px; cursor: pointer; white-space: nowrap; letter-spacing: .4px }
+.tr-now:active { opacity: .85 }
 .time-now-btn { background: var(--card2); border: 1px solid var(--bdr2); border-radius: 8px; color: var(--txt2); font-size: .75rem; padding: 8px 11px; cursor: pointer; white-space: nowrap; font-family: var(--sans) }
 
 /* ── MACRO BOX ── */
