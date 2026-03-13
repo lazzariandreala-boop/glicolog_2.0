@@ -22,18 +22,18 @@
             @mousedown.prevent="pickResult(r)"
             @touchstart.prevent="pickResult(r)"
           >
-            <div class="aci-row">
-              <span class="aci-name">{{ r.name }}</span>
-              <span v-if="r.mac" class="aci-mac">
-                <span class="aci-c">C {{ r.mac.c }}g</span>
-                <span class="aci-unit">/100g</span>
-                <span class="aci-k"> {{ r.mac.k }}kcal</span>
-                <span v-if="r.online" class="aci-src">OFF</span>
-              </span>
+            <div class="aci-name-full">{{ r.name }}<span v-if="r.online" class="aci-src">web</span></div>
+            <div v-if="r.mac" class="aci-mac-row">
+              <span class="aci-c">C {{ r.mac.c }}g</span>
+              <span class="aci-sep">·</span>
+              <span>P {{ r.mac.p }}g</span>
+              <span class="aci-sep">·</span>
+              <span class="aci-k">{{ r.mac.k }} kcal</span>
+              <span class="aci-unit">/100g</span>
             </div>
           </div>
           <div v-if="searching" class="aci-spin">🔍 Ricerca online…</div>
-          <div v-if="acResults.length > 0" class="aci-footer" @mousedown.prevent="searchOnline">🔍 Ricerca approfondita…</div>
+          <div v-if="acResults.length > 0" class="aci-footer" @mousedown.prevent="searchOnline">🔍 Ricerca approfondita online…</div>
         </div>
       </div>
 
