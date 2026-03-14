@@ -32,7 +32,7 @@ const points = computed(() => {
   const arr = []
   for (let i = -(days.value - 1); i <= 0; i++) {
     entriesStore.forDay(getDK(i))
-      .filter(e => e.type === 'glicemia' && e.glic > 0)
+      .filter(e => e.glic > 0)
       .forEach(e => arr.push({ ts: e.ts, v: e.glic }))
   }
   return arr.sort((a, b) => a.ts - b.ts)

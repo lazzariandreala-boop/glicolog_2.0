@@ -25,7 +25,7 @@
         />
       </div>
       <!-- Riepilogo macro totali -->
-      <div v-if="form.foodRows.length > 1 && totals.c > 0" class="food-rows-total">
+      <div v-if="form.foodRows.length > 1 && (totals.c > 0 || totals.k > 0)" class="food-rows-total">
         <span class="food-rows-total-lbl">TOTALE</span>
         <span class="food-row-mac-chip fc"><span>{{ totals.c.toFixed(1) }}g</span> C</span>
         <span class="food-row-mac-chip"><span>{{ totals.p.toFixed(1) }}g</span> P</span>
@@ -157,6 +157,13 @@ function updateRowMacros(i, m) {
   // m.c/p/g/f/k are per-100g values emitted by FoodRow
   Object.assign(form.value.foodRows[i], { c100: m.c, p100: m.p, g100: m.g, f100: m.f, k100: m.k })
 }
+
+watch(totals, (t) => {
+  form.value.mC = t.c || null
+  form.value.mP = t.p || null
+  form.value.mG = t.g || null
+  form.value.mF = t.f || null
+})
 
 watch(() => app.openPanel, (p) => {
   visible.value = p === 'pasto'

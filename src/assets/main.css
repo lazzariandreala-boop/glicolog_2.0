@@ -289,6 +289,8 @@ body { font-family: var(--sans); color: var(--txt); background: var(--bg); min-h
 .fr-unit { position: absolute; right: 7px; font-size: .66rem; color: var(--txt2); pointer-events: none; font-weight: 600; letter-spacing: .2px }
 .fr-del-btn { background: none; border: 1px solid rgba(255,82,82,.3); border-radius: 8px; color: var(--r); font-size: 1.1rem; width: 36px; height: 46px; cursor: pointer; line-height: 1; flex-shrink: 0 }
 .fr-del-btn:active { background: rgba(255,82,82,.08) }
+.fr-scan-btn { background: none; border: 1px solid rgba(34,211,238,.3); border-radius: 8px; color: #22d3ee; font-size: .95rem; width: 36px; height: 46px; cursor: pointer; line-height: 1; flex-shrink: 0 }
+.fr-scan-btn:active { background: rgba(34,211,238,.08) }
 .fr-macros { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 3px; min-height: 0 }
 .food-row-mac-chip { font-size: .67rem; background: rgba(128,203,196,.1); border: 1px solid rgba(128,203,196,.2); border-radius: 5px; padding: 3px 6px; color: var(--txt2) }
 .food-row-mac-chip span { color: var(--nut); font-weight: 700 }

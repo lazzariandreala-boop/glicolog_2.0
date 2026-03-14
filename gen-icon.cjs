@@ -129,8 +129,7 @@ function generateIcon(SIZE) {
   function s(v) { return Math.round(v * K) }
 
   // ── BACKGROUND ─────────────────────────────────────────
-  fillRect(0, 0, SIZE, SIZE, BG)
-  rrect(s(4), s(4), s(184), s(184), s(28), BG2)
+  fillRect(0, 0, SIZE, SIZE, BG2)
 
   // Subtle inner border glow (top edge)
   for (let i = 0; i < s(3); i++) {

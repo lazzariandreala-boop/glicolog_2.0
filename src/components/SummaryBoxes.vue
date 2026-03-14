@@ -79,7 +79,7 @@ const cfgStore = useConfigStore()
 const stepsStore = useStepsStore()
 
 const entries = computed(() => entriesStore.forDay(getDK(app.dayOffset)))
-const glicEntries = computed(() => entries.value.filter(e => e.type === 'glicemia'))
+const glicEntries = computed(() => entries.value.filter(e => e.glic > 0))
 
 const glicVals = computed(() => glicEntries.value.map(e => e.glic).filter(Boolean))
 const glicAvg  = computed(() => glicVals.value.length ? Math.round(glicVals.value.reduce((s,v)=>s+v,0)/glicVals.value.length) : null)

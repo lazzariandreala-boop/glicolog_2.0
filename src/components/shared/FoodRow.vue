@@ -50,9 +50,12 @@
           />
           <span class="fr-unit">{{ isDrink ? 'ml' : 'g' }}</span>
         </div>
+        <button class="fr-scan-btn" @click="scannerOpen = true" title="Scansiona barcode">⬛</button>
         <button class="fr-del-btn" @click="$emit('remove')">×</button>
       </div>
     </div>
+
+    <BarcodeScanner v-model="scannerOpen" @found="onBarcodeFound" />
 
     <!-- Macro chips -->
     <div class="fr-macros" v-if="localMacros.c > 0 || localMacros.k > 0">
@@ -72,6 +75,7 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
 import { useFoodDbStore } from '@/stores/index.js'
+import BarcodeScanner from './BarcodeScanner.vue'
 
 const props = defineProps({
   index:    { type: Number, default: 0 },
@@ -96,6 +100,7 @@ const mac100     = ref({ c: props.c100, p: props.p100, g: props.g100, f: props.f
 const showAc   = ref(false)
 const acResults = ref([])
 const searching = ref(false)
+const scannerOpen = ref(false)
 let acTimer = null
 
 const localMacros = computed(() => {
@@ -158,8 +163,15 @@ function pickResult(r) {
   localName.value = r.name
   if (r.mac) {
     mac100.value = { c: r.mac.c||0, p: r.mac.p||0, g: r.mac.g||0, f: r.mac.f||0, k: r.mac.k||0 }
-    isDrink.value = r.name.toLowerCase().includes('ml') || r.name.toLowerCase().includes('drink')
-    if (!localGrams.value) localGrams.value = isDrink.value ? 200 : 100
+    // Leggi la porzione di default dal DB (campo "n", es. "300g" o "200ml")
+    const nMatch = r.mac.n ? String(r.mac.n).match(/^(\d+(?:\.\d+)?)(g|ml)?/i) : null
+    if (nMatch) {
+      localGrams.value = parseFloat(nMatch[1])
+      isDrink.value = (nMatch[2] || '').toLowerCase() === 'ml'
+    } else {
+      isDrink.value = r.name.toLowerCase().includes('ml') || r.name.toLowerCase().includes('drink')
+      if (!localGrams.value) localGrams.value = isDrink.value ? 200 : 100
+    }
     dbStore.learn(r.name, r.mac)
   }
   showAc.value = false
@@ -171,6 +183,15 @@ function pickResult(r) {
 function recalc() {
   emit('update:grams', localGrams.value)
   emit('update:macros', { ...localMacros.value, ...mac100.value, grams: localGrams.value, name: localName.value })
+}
+
+function onBarcodeFound({ name, mac }) {
+  localName.value = name
+  mac100.value = { c: mac.c||0, p: mac.p||0, g: mac.g||0, f: mac.f||0, k: mac.k||0 }
+  if (!localGrams.value) localGrams.value = 100
+  dbStore.learn(name, mac)
+  emit('update:name', name)
+  recalc()
 }
 
 // Chiudi dropdown se si clicca fuori
