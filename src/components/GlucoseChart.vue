@@ -1,10 +1,11 @@
 <template>
   <div class="gchart" ref="wrapEl">
-    <!-- Avg per tipo pasto -->
+    <!-- Avg per fascia oraria -->
     <div class="gchart-avgs">
       <div v-for="m in mealAvgs" :key="m.label" class="gchart-avg-box">
         <span class="gchart-avg-val" :style="{ color: m.color }">{{ m.val ?? '—' }}</span>
         <span class="gchart-avg-lbl">{{ m.label }}</span>
+        <span class="gchart-avg-sub">{{ m.sub }}</span>
       </div>
     </div>
 
@@ -117,25 +118,30 @@ const points = computed(() => {
 })
 const hasData = computed(() => points.value.length > 0)
 
-// --- avg per tipo pasto ---
+// --- avg per fascia oraria ---
+// Mattina 7:00–12:30 | Pomeriggio 12:30–18:00 | Sera 18:00–22:00 | Notte 22:00–7:00
 const mealAvgs = computed(() => {
   const days = period.value === 'oggi' ? [0] : Array.from({ length: period.value }, (_, i) => -(period.value - 1) + i)
-  const col = [], pra = [], cen = []
+  const mat = [], pom = [], ser = [], not = []
   days.forEach(offset => {
     entriesStore.forDay(getDK(offset)).forEach(e => {
-      if (e.type === 'pasto' && e.glic > 0) {
-        if (e.mealType === 'Colazione') col.push(e.glic)
-        else if (e.mealType === 'Pranzo') pra.push(e.glic)
-        else if (e.mealType === 'Cena')   cen.push(e.glic)
+      if (e.glic > 0) {
+        const d = new Date(e.ts)
+        const mins = d.getHours() * 60 + d.getMinutes()
+        if      (mins >= 7*60 && mins < 12*60+30) mat.push(e.glic)
+        else if (mins >= 12*60+30 && mins < 18*60) pom.push(e.glic)
+        else if (mins >= 18*60 && mins < 22*60)    ser.push(e.glic)
+        else                                        not.push(e.glic)
       }
     })
   })
   const avg = arr => arr.length ? Math.round(arr.reduce((s, v) => s + v, 0) / arr.length) : null
   const color = v => !v ? 'var(--txt2)' : v < cfgMin.value ? 'var(--r)' : v > cfgMax.value ? 'var(--o)' : 'var(--g)'
   return [
-    { label: 'COLAZIONE AVG', val: avg(col), color: color(avg(col)) },
-    { label: 'PRANZO AVG',    val: avg(pra), color: color(avg(pra)) },
-    { label: 'CENA AVG',      val: avg(cen), color: color(avg(cen)) },
+    { label: 'MATTINA',     sub: '7–12:30', val: avg(mat), color: color(avg(mat)) },
+    { label: 'POMERIGGIO',  sub: '12:30–18', val: avg(pom), color: color(avg(pom)) },
+    { label: 'SERA',        sub: '18–22',  val: avg(ser), color: color(avg(ser)) },
+    { label: 'NOTTE',       sub: '22–7',   val: avg(not), color: color(avg(not)) },
   ]
 })
 
@@ -328,11 +334,12 @@ onUnmounted(() => themeObserver?.disconnect())
 </script>
 
 <style scoped>
-/* Avg per pasto */
-.gchart-avgs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
-.gchart-avg-box { background: var(--card2); border: 1px solid var(--bdr); border-radius: 10px; padding: 10px 8px; text-align: center; }
-.gchart-avg-val { display: block; font-size: 1.4rem; font-weight: 800; font-family: var(--mono); line-height: 1.1; }
-.gchart-avg-lbl { display: block; font-size: .6rem; font-weight: 600; color: var(--txt2); text-transform: uppercase; letter-spacing: .4px; margin-top: 3px; }
+/* Avg per fascia oraria */
+.gchart-avgs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 12px; }
+.gchart-avg-box { background: var(--card2); border: 1px solid var(--bdr); border-radius: 10px; padding: 9px 4px; text-align: center; }
+.gchart-avg-val { display: block; font-size: 1.25rem; font-weight: 800; font-family: var(--mono); line-height: 1.1; }
+.gchart-avg-lbl { display: block; font-size: .58rem; font-weight: 600; color: var(--txt2); text-transform: uppercase; letter-spacing: .3px; margin-top: 3px; }
+.gchart-avg-sub { display: block; font-size: .55rem; color: var(--txt2); opacity: .7; margin-top: 1px; }
 
 /* Tabs */
 .gchart-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
