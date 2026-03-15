@@ -5,31 +5,50 @@
       <span class="arr">▼</span>
     </button>
     <div class="nut-body" :class="{ show: open }">
-      <!-- Barre macro -->
-      <div v-for="macro in macros" :key="macro.key" class="nut-bar-wrap">
-        <div class="nut-bar-hd">
-          <span class="nut-bar-lbl">{{ macro.label }}</span>
-          <span class="nut-bar-val" :style="{ color: macro.color }">
-            {{ macro.val }}{{ macro.unit }}
-            <span style="color:var(--txt2);font-size:.75rem"> / {{ macro.target }}{{ macro.unit }}</span>
-          </span>
+      <!-- Calorie full-width -->
+      <div class="nut-box nut-box-wide">
+        <div class="nut-box-top">
+          <span class="nut-box-lbl">🔥 Calorie</span>
+          <span class="nut-box-val" :style="{ color: kcalColor }">{{ totKcal }} <span class="nut-box-unit">/ {{ cfg.kcal || 2000 }} kcal</span></span>
         </div>
-        <div class="nut-bar-bg">
-          <div class="nut-bar-fg" :style="{ width: macro.pct + '%', background: macro.color }"></div>
-        </div>
-        <div class="nut-bar-sub">{{ macro.sub }}</div>
+        <div class="nut-bar-bg"><div class="nut-bar-fg" :style="{ width: pct(totKcal, cfg.kcal || 2000) + '%', background: kcalColor }"></div></div>
+        <div class="nut-box-sub">{{ Math.max(0, (cfg.kcal || 2000) - totKcal) }} kcal rimanenti</div>
       </div>
 
-      <!-- Acqua -->
-      <div class="nut-bar-wrap">
-        <div class="nut-bar-hd">
-          <span class="nut-bar-lbl">💧 Acqua</span>
-          <span class="nut-bar-val" style="color:#29b6f6">{{ waterTotal }}ml <span style="color:var(--txt2);font-size:.75rem">/ 2000ml</span></span>
+      <!-- 2x2 grid -->
+      <div class="nut-grid2">
+        <div class="nut-box">
+          <div class="nut-box-top">
+            <span class="nut-box-lbl">🌾 Carbo</span>
+            <span class="nut-box-val" style="color:var(--o)">{{ totCarbs }}<span class="nut-box-unit">g</span></span>
+          </div>
+          <div class="nut-bar-bg"><div class="nut-bar-fg" :style="{ width: pct(totCarbs, cfg.carbs || 130) + '%', background: 'var(--o)' }"></div></div>
+          <div class="nut-box-sub">/ {{ cfg.carbs || 130 }}g</div>
         </div>
-        <div class="nut-bar-bg">
-          <div class="nut-bar-fg" :style="{ width: Math.min(waterTotal/20, 100)+'%', background:'#29b6f6' }"></div>
+        <div class="nut-box">
+          <div class="nut-box-top">
+            <span class="nut-box-lbl">🥩 Proteine</span>
+            <span class="nut-box-val" style="color:var(--r)">{{ totProtein }}<span class="nut-box-unit">g</span></span>
+          </div>
+          <div class="nut-bar-bg"><div class="nut-bar-fg" :style="{ width: pct(totProtein, cfg.protein || 180) + '%', background: 'var(--r)' }"></div></div>
+          <div class="nut-box-sub">/ {{ cfg.protein || 180 }}g</div>
         </div>
-        <div class="nut-bar-sub">{{ waterTotal >= 2000 ? '✅ Idratazione raggiunta' : Math.max(0, 2000 - waterTotal) + 'ml ancora' }}</div>
+        <div class="nut-box">
+          <div class="nut-box-top">
+            <span class="nut-box-lbl">🫙 Grassi</span>
+            <span class="nut-box-val" style="color:var(--p)">{{ totFat }}<span class="nut-box-unit">g</span></span>
+          </div>
+          <div class="nut-bar-bg"><div class="nut-bar-fg" :style="{ width: pct(totFat, cfg.fat || 96) + '%', background: 'var(--p)' }"></div></div>
+          <div class="nut-box-sub">/ {{ cfg.fat || 96 }}g</div>
+        </div>
+        <div class="nut-box">
+          <div class="nut-box-top">
+            <span class="nut-box-lbl">💧 Acqua</span>
+            <span class="nut-box-val" style="color:#29b6f6">{{ waterTotal }}<span class="nut-box-unit">ml</span></span>
+          </div>
+          <div class="nut-bar-bg"><div class="nut-bar-fg" :style="{ width: pct(waterTotal, 2000) + '%', background: '#29b6f6' }"></div></div>
+          <div class="nut-box-sub">/ 2000ml</div>
+        </div>
       </div>
     </div>
   </div>
@@ -47,6 +66,7 @@ const cfgStore = useConfigStore()
 const open = ref(false)
 
 const entries = computed(() => entriesStore.forDay(getDK(app.dayOffset)))
+const cfg = computed(() => cfgStore.cfg)
 
 function sumNut(key) {
   return entries.value.reduce((s, e) => s + (e[key] || 0), 0)
@@ -58,14 +78,10 @@ const totFat     = computed(() => Math.round(sumNut('fat')))
 const totKcal    = computed(() => Math.round(sumNut('kcal')))
 const waterTotal = computed(() => Math.round(entries.value.filter(e=>e.type==='acqua').reduce((s,e)=>s+(e.ml||0),0)))
 
-const macros = computed(() => {
-  const cfg = cfgStore.cfg
-  const mk = v => Math.min(Math.round(v), 100)
-  return [
-    { key:'carbs',   label:'🌾 Carboidrati', val: totCarbs.value,   unit:'g', target: cfg.carbs||130,   color:'var(--o)',  pct: mk(totCarbs.value   / (cfg.carbs||130)   * 100), sub: `${Math.max(0, (cfg.carbs||130) - totCarbs.value)}g rimasti` },
-    { key:'protein', label:'🥩 Proteine',    val: totProtein.value, unit:'g', target: cfg.protein||180, color:'var(--r)',  pct: mk(totProtein.value / (cfg.protein||180) * 100), sub: `Target: ${cfg.protein||180}g` },
-    { key:'fat',     label:'🫙 Grassi',      val: totFat.value,     unit:'g', target: cfg.fat||96,      color:'var(--p)',  pct: mk(totFat.value     / (cfg.fat||96)      * 100), sub: `Target: ${cfg.fat||96}g` },
-    { key:'kcal',    label:'🔥 Calorie',     val: totKcal.value,    unit:'kcal', target: cfg.kcal||2000, color:'var(--g)', pct: mk(totKcal.value    / (cfg.kcal||2000)   * 100), sub: `${Math.max(0, (cfg.kcal||2000) - totKcal.value)} kcal rimanenti` },
-  ]
+function pct(val, target) { return Math.min(Math.round(val / target * 100), 100) }
+
+const kcalColor = computed(() => {
+  const p = pct(totKcal.value, cfg.value.kcal || 2000)
+  return p >= 100 ? 'var(--r)' : p >= 80 ? 'var(--o)' : 'var(--g)'
 })
 </script>

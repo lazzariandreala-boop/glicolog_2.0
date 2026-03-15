@@ -1,82 +1,112 @@
 <template>
   <PanelBase :visible="visible">
-    <div class="pt">⚙️ Profilo</div>
+    <div class="pf-title">⚙️ Profilo personale</div>
+    <p class="pf-subtitle">I tuoi parametri per suggerimenti e target nutrizionali. Aggiornali se cambia il peso o le dosi.</p>
 
     <div class="pdiv">📏 Dati corporei</div>
-    <div class="fr"><span class="fl">Età</span><input class="fi" type="number" inputmode="numeric" v-model.number="form.age" placeholder="es. 32" /></div>
-    <div class="fr"><span class="fl">Peso (kg)</span><input class="fi" type="number" inputmode="decimal" v-model.number="form.weight" placeholder="es. 80" /></div>
-    <div class="fr"><span class="fl">Altezza (cm)</span><input class="fi" type="number" inputmode="numeric" v-model.number="form.height" placeholder="es. 174" /></div>
-    <div class="fr">
-      <span class="fl">Sesso</span>
-      <SegmentControl v-model="form.sex" :options="[{value:'M',label:'♂ M'},{value:'F',label:'♀ F'}]" />
+
+    <div class="pf-grid2">
+      <div class="pf-field">
+        <span class="pf-label">ETÀ</span>
+        <input class="fi pf-input" type="number" inputmode="numeric" v-model.number="form.age" placeholder="es. 32" />
+      </div>
+      <div class="pf-field">
+        <span class="pf-label">PESO (KG)</span>
+        <input class="fi pf-input" type="number" inputmode="decimal" v-model.number="form.weight" placeholder="es. 80" />
+      </div>
+      <div class="pf-field">
+        <span class="pf-label">ALTEZZA (CM)</span>
+        <input class="fi pf-input" type="number" inputmode="numeric" v-model.number="form.height" placeholder="es. 174" />
+      </div>
+      <div class="pf-field">
+        <span class="pf-label">SESSO</span>
+        <SegmentControl v-model="form.sex" :options="[{value:'M',label:'♂ M'},{value:'F',label:'♀ F'}]" />
+      </div>
     </div>
-    <div class="fr">
-      <span class="fl">Attività fisica</span>
+
+    <div class="pf-field">
+      <span class="pf-label">ATTIVITÀ FISICA</span>
       <SegmentControl v-model="form.activity" :options="activityOpts" />
     </div>
-    <div class="fr">
-      <span class="fl">Obiettivo</span>
+
+    <div class="pf-field">
+      <span class="pf-label">OBIETTIVO</span>
       <SegmentControl v-model="form.goal" :options="goalOpts" />
     </div>
 
     <div class="pdiv">🩸 Parametri glicemici</div>
-    <div class="fr"><span class="fl">Target MIN (mg/dL)</span><input class="fi" type="number" inputmode="numeric" v-model.number="form.targetMin" placeholder="es. 100" /></div>
-    <div class="fr"><span class="fl">Target MAX (mg/dL)</span><input class="fi" type="number" inputmode="numeric" v-model.number="form.targetMax" placeholder="es. 160" /></div>
-    <div class="fr">
-      <span class="fl">FSI — mg/dL per 1U</span>
-      <input class="fi" type="number" inputmode="decimal" step="0.5" v-model.number="form.fsi" placeholder="es. 30" />
-      <div class="fi-hint">Di quanti mg/dL scendi con 1 unità</div>
+
+    <div class="pf-grid2">
+      <div class="pf-field">
+        <span class="pf-label">TARGET MIN</span>
+        <input class="fi pf-input" type="number" inputmode="numeric" v-model.number="form.targetMin" placeholder="es. 80" />
+      </div>
+      <div class="pf-field">
+        <span class="pf-label">TARGET MAX</span>
+        <input class="fi pf-input" type="number" inputmode="numeric" v-model.number="form.targetMax" placeholder="es. 180" />
+      </div>
+      <div class="pf-field">
+        <span class="pf-label">FSI (MG/DL PER 1U)</span>
+        <input class="fi pf-input" type="number" inputmode="decimal" step="0.5" v-model.number="form.fsi" placeholder="es. 35" />
+        <span class="pf-hint">Di quanti mg/dL scendi con 1U</span>
+      </div>
+      <div class="pf-field">
+        <span class="pf-label">I:C (G CARBO PER 1U)</span>
+        <input class="fi pf-input" type="number" inputmode="decimal" step="0.5" v-model.number="form.ic" placeholder="es. 5" />
+        <span class="pf-hint">Grammi coperti da 1U</span>
+      </div>
     </div>
-    <div class="fr">
-      <span class="fl">I:C — g carbo per 1U</span>
-      <input class="fi" type="number" inputmode="decimal" step="0.5" v-model.number="form.ic" placeholder="es. 7" />
-      <div class="fi-hint">Grammi coperti da 1 unità</div>
-    </div>
-    <div class="fr">
-      <span class="fl">Insulina rapida</span>
-      <select class="fi" v-model="form.insRapida">
+
+    <div class="pf-field">
+      <span class="pf-label">INSULINA RAPIDA</span>
+      <select class="fi pf-input" v-model="form.insRapida">
         <option v-for="opt in rapidaOpts" :key="opt" :value="opt">{{ opt }}</option>
       </select>
     </div>
-    <div class="fr">
-      <span class="fl">Insulina basale</span>
-      <select class="fi" v-model="form.insBasale">
+
+    <div class="pf-field">
+      <span class="pf-label">INSULINA BASALE</span>
+      <select class="fi pf-input" v-model="form.insBasale">
         <option value="">— nessuna —</option>
         <option v-for="opt in basaleOpts" :key="opt" :value="opt">{{ opt }}</option>
       </select>
     </div>
 
     <div class="pdiv">🍺 Limite alcolico</div>
-    <div class="fr">
-      <span class="fl">Unità max a settimana</span>
-      <input class="fi" type="number" inputmode="numeric" v-model.number="form.alcMax" placeholder="es. 5" />
-      <div class="fi-hint">1U ≈ 1 spritz · 1 calice vino · 1 birra 33cl</div>
+
+    <div class="pf-field">
+      <span class="pf-label">UNITÀ MAX A SETTIMANA</span>
+      <input class="fi pf-input" type="number" inputmode="numeric" v-model.number="form.alcMax" placeholder="es. 5" />
+      <span class="pf-hint">1U ≈ 1 spritz · 1 calice vino · 1 birra 33cl</span>
     </div>
 
     <div class="pdiv">🎨 Aspetto</div>
-    <div class="fr">
-      <span class="fl">Tema</span>
+
+    <div class="pf-field">
+      <span class="pf-label">TEMA</span>
       <SegmentControl v-model="currentTheme" :options="[{value:'dark',label:'🌙 Scuro'},{value:'light',label:'☀️ Chiaro'}]" @update:modelValue="v => appStore.setTheme(v)" />
     </div>
 
     <!-- GIST SYNC -->
     <div class="pdiv">☁️ Sincronizzazione GitHub Gist</div>
-    <div style="font-size:.72rem;color:var(--txt2);margin-bottom:12px;line-height:1.5">
-      I dati vengono salvati in un Gist privato su GitHub. Il token non viene mai trasmesso ad altri server.
+    <p class="pf-subtitle">I dati vengono salvati in un Gist privato su GitHub. Il token non viene mai trasmesso ad altri server.</p>
+
+    <div class="pf-field">
+      <span class="pf-label">GITHUB PERSONAL ACCESS TOKEN</span>
+      <input class="fi pf-input" type="password" v-model="gistToken" placeholder="ghp_xxxxxxxxxxxxxxxxxx" autocomplete="off" />
+      <span class="pf-hint">Genera su github.com → Settings → Developer settings → Personal access tokens (scope: gist)</span>
     </div>
-    <div class="fr">
-      <span class="fl">GitHub Personal Access Token</span>
-      <input class="fi" type="password" v-model="gistToken" placeholder="ghp_xxxxxxxxxxxxxxxxxx" autocomplete="off" />
-      <div class="fi-hint">Genera su github.com → Settings → Developer settings → Personal access tokens (scope: gist)</div>
+
+    <div class="pf-field">
+      <span class="pf-label">GIST ID (compilato automaticamente)</span>
+      <input class="fi pf-input" type="text" v-model="gistId" placeholder="Lascia vuoto per creare un nuovo Gist" />
     </div>
-    <div class="fr">
-      <span class="fl">Gist ID (compilato automaticamente)</span>
-      <input class="fi" type="text" v-model="gistId" placeholder="Lascia vuoto per creare un nuovo Gist" />
-    </div>
-    <div v-if="lastSync" style="font-size:.72rem;color:var(--txt2);margin-bottom:12px">
+
+    <div v-if="lastSync" class="pf-sync-info">
       Ultima sincronizzazione: {{ lastSyncFormatted }}
     </div>
-    <div style="display:flex;gap:8px;margin-bottom:14px">
+
+    <div class="pf-gist-row">
       <button class="gist-btn gist-up" :disabled="gistBusy" @click="doExport">
         <span>{{ gistBusy === 'export' ? '⏳' : '☁️↑' }}</span> Salva su Gist
       </button>
@@ -86,9 +116,9 @@
     </div>
 
     <!-- TDEE calcolato -->
-    <div v-if="tdee" style="background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:.82rem">
-      <div style="font-weight:700;color:var(--txt);margin-bottom:6px">📊 TDEE calcolato</div>
-      <div style="color:var(--txt2)">{{ tdee }} kcal/giorno (con attività)</div>
+    <div v-if="tdee" class="pf-tdee">
+      <div class="pf-tdee-title">📊 TDEE calcolato</div>
+      <div class="pf-tdee-val">{{ tdee }} kcal/giorno (con attività)</div>
     </div>
 
     <button class="bsave" @click="save">💾 Salva e ricalcola target</button>
@@ -238,11 +268,92 @@ function save() {
 function close() { app.closePanel() }
 </script>
 
-<style>
+<style scoped>
+.pf-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.pf-subtitle {
+  font-size: .75rem;
+  color: var(--txt2);
+  margin: 0 0 14px;
+  line-height: 1.4;
+}
+.pf-grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.pf-grid2 > .pf-field {
+  min-width: 0;
+}
+.pf-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+.pf-label {
+  font-size: .7rem;
+  font-weight: 600;
+  color: var(--txt2);
+  letter-spacing: .4px;
+  text-transform: uppercase;
+}
+.pf-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+.pf-hint {
+  font-size: .68rem;
+  color: var(--txt2);
+  line-height: 1.3;
+}
+.pf-sync-info {
+  font-size: .72rem;
+  color: var(--txt2);
+  margin-bottom: 12px;
+}
+.pf-gist-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.pf-tdee {
+  background: var(--card);
+  border: 1px solid var(--bdr);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+.pf-tdee-title {
+  font-weight: 700;
+  color: var(--txt);
+  margin-bottom: 4px;
+  font-size: .85rem;
+}
+.pf-tdee-val {
+  font-size: .82rem;
+  color: var(--txt2);
+}
 .gist-btn {
-  flex: 1; border: none; border-radius: 11px; font-family: var(--sans);
-  font-weight: 600; font-size: .85rem; padding: 12px 8px; cursor: pointer;
-  transition: opacity .12s; display: flex; align-items: center; justify-content: center; gap: 6px;
+  flex: 1;
+  border: none;
+  border-radius: 11px;
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: .85rem;
+  padding: 12px 8px;
+  cursor: pointer;
+  transition: opacity .12s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 .gist-btn:disabled { opacity: .5; cursor: not-allowed; }
 .gist-up { background: rgba(0,230,118,.15); color: var(--g); border: 1px solid rgba(0,230,118,.3); }

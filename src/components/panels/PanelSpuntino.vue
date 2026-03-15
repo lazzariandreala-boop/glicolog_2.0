@@ -1,6 +1,6 @@
 <template>
   <PanelBase :visible="visible">
-    <div class="pt">🍎 {{ isEdit ? 'Modifica spuntino' : 'Nuovo Spuntino' }}</div>
+    <div class="pt" style="text-transform:uppercase;letter-spacing:.5px">🍎 {{ isEdit ? 'Modifica spuntino' : 'Nuovo Spuntino' }}</div>
 
     <div class="fr">
       <span class="fl">Cosa hai mangiato?</span>
@@ -26,13 +26,28 @@
       <input class="fi" type="number" inputmode="numeric" v-model.number="form.glic" placeholder="mg/dL (opzionale)" />
     </div>
 
-    <div class="fr" v-if="form.glic">
+    <div class="fr">
       <span class="fl">Direzionalità ↗↘</span>
       <TrendSelector v-model="form.trend" />
     </div>
 
+    <!-- Bolo suggerito -->
+    <div class="bolo-box" :class="{ on: boloUnits > 0 }">
+      <div class="bolo-ico">💉</div>
+      <div class="bolo-body">
+        <div class="bolo-val">{{ boloUnits.toFixed(1) }}U</div>
+        <div class="bolo-lbl">Bolo suggerito dai carboidrati</div>
+      </div>
+      <div class="bolo-edit">
+        <input type="number" inputmode="decimal" step="0.5" min="0" placeholder="U" v-model.number="form.boloOverride" />
+      </div>
+    </div>
+
     <div class="mbox">
-      <div class="mbox-t"><span>🥗 Macronutrienti</span></div>
+      <div class="mbox-t">
+        <span>🥗 Macronutrienti</span>
+        <button class="mbox-suggest" @click="form.mC=null;form.mP=null;form.mG=null;form.mF=null">✨ Suggerisci macro</button>
+      </div>
       <div class="g4">
         <div class="fr"><span class="fl">Carbo g</span><input class="fi" type="number" inputmode="decimal" v-model.number="form.mC" placeholder="0" /></div>
         <div class="fr"><span class="fl">Prot g</span><input class="fi" type="number" inputmode="decimal" v-model.number="form.mP" placeholder="0" /></div>
@@ -52,7 +67,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useAppStore } from '@/stores/app.js'
-import { useEntriesStore } from '@/stores/index.js'
+import { useEntriesStore, useConfigStore } from '@/stores/index.js'
 import PanelBase from './PanelBase.vue'
 import FoodRow from '@/components/shared/FoodRow.vue'
 import TimeRow from '@/components/shared/TimeRow.vue'
@@ -60,11 +75,12 @@ import TrendSelector from '@/components/shared/TrendSelector.vue'
 
 const app = useAppStore()
 const entriesStore = useEntriesStore()
+const cfgStore = useConfigStore()
 const visible = ref(false)
 const isEdit = ref(false)
 
 const defaultRow = () => ({ id: Date.now() + Math.random(), name: '', grams: 0, c100:0, p100:0, g100:0, f100:0, k100:0, isDrink:false })
-const form = ref({ foodRows: [defaultRow()], glic: null, trend: '→', mC: null, mP: null, mG: null, mF: null, ts: Date.now() })
+const form = ref({ foodRows: [defaultRow()], glic: null, trend: '→', boloOverride: null, mC: null, mP: null, mG: null, mF: null, ts: Date.now() })
 
 const totals = computed(() => {
   let c=0,p=0,g=0,f=0,k=0
@@ -82,6 +98,18 @@ function updateRowMacros(i, m) {
   Object.assign(form.value.foodRows[i], { c100: m.c, p100: m.p, g100: m.g, f100: m.f, k100: m.k })
 }
 
+const effCarbs = computed(() => form.value.mC || totals.value.c || 0)
+const boloUnits = computed(() => {
+  const cfg = cfgStore.cfg
+  if (!effCarbs.value || !cfg.ic) return 0
+  let bolo = effCarbs.value / cfg.ic
+  if (form.value.glic && cfg.targetMax && cfg.fsi) {
+    const excess = form.value.glic - cfg.targetMax
+    if (excess > 0) bolo += excess / cfg.fsi
+  }
+  return Math.round(bolo * 2) / 2
+})
+
 watch(totals, (t) => {
   form.value.mC = t.c || null
   form.value.mP = t.p || null
@@ -94,13 +122,13 @@ watch(() => app.openPanel, (p) => {
   if (p === 'spuntino') {
     const e = app.editEntry
     isEdit.value = !!e
-    if (e) form.value = { foodRows: e.foodRows?.length ? e.foodRows.map(r=>({...defaultRow(),...r})) : [defaultRow()], glic: e.glic||null, trend: e.trend||'→', mC: e.carbs||null, mP: e.protein||null, mG: e.fat||null, mF: e.fiber||null, ts: e.ts }
-    else form.value = { foodRows: [defaultRow()], glic: null, trend: '→', mC: null, mP: null, mG: null, mF: null, ts: Date.now() }
+    if (e) form.value = { foodRows: e.foodRows?.length ? e.foodRows.map(r=>({...defaultRow(),...r})) : [defaultRow()], glic: e.glic||null, trend: e.trend||'→', boloOverride: e.bolo||null, mC: e.carbs||null, mP: e.protein||null, mG: e.fat||null, mF: e.fiber||null, ts: e.ts }
+    else form.value = { foodRows: [defaultRow()], glic: null, trend: '→', boloOverride: null, mC: null, mP: null, mG: null, mF: null, ts: Date.now() }
   }
 })
 
 function save() {
-  const entry = { type: 'spuntino', foodRows: form.value.foodRows.filter(r=>r.name), food: form.value.foodRows.map(r=>r.name).filter(Boolean).join(', '), glic: form.value.glic, trend: form.value.glic ? form.value.trend : null, carbs: form.value.mC??totals.value.c, protein: form.value.mP??totals.value.p, fat: form.value.mG??totals.value.g, fiber: form.value.mF??totals.value.f, kcal: totals.value.k, ts: form.value.ts }
+  const entry = { type: 'spuntino', foodRows: form.value.foodRows.filter(r=>r.name), food: form.value.foodRows.map(r=>r.name).filter(Boolean).join(', '), glic: form.value.glic, trend: form.value.glic ? form.value.trend : null, bolo: form.value.boloOverride ?? boloUnits.value, carbs: form.value.mC??totals.value.c, protein: form.value.mP??totals.value.p, fat: form.value.mG??totals.value.g, fiber: form.value.mF??totals.value.f, kcal: totals.value.k, ts: form.value.ts }
   if (isEdit.value && app.editEntry) { entriesStore.update(app.editEntry.id, entry); app.toast('✅ Spuntino aggiornato') }
   else { entriesStore.add(entry); app.toast('🍎 Spuntino salvato') }
   close()

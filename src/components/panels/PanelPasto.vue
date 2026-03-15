@@ -1,6 +1,6 @@
 <template>
   <PanelBase :visible="visible">
-    <div class="pt">🍽️ {{ isEdit ? 'Modifica pasto' : 'Nuovo Pasto' }}</div>
+    <div class="pt" style="text-transform:uppercase;letter-spacing:.5px">🍽️ {{ isEdit ? 'Modifica pasto' : 'Nuovo Pasto' }}</div>
 
     <!-- Tipo pasto -->
     <div class="fr">
@@ -43,7 +43,7 @@
     </div>
 
     <!-- Direzionalità -->
-    <div class="fr" v-if="form.glic">
+    <div class="fr">
       <span class="fl">Direzionalità ↗↘</span>
       <TrendSelector v-model="form.trend" />
     </div>
@@ -63,7 +63,8 @@
     <!-- Macro box -->
     <div class="mbox">
       <div class="mbox-t">
-        <span>🥗 Macronutrienti (opzionale override)</span>
+        <span>🥗 Macronutrienti</span>
+        <button class="mbox-suggest" @click="resetMacros">✨ Suggerisci macro</button>
       </div>
       <div class="g4">
         <div class="fr"><span class="fl">Carbo g</span><input class="fi" type="number" inputmode="decimal" v-model.number="form.mC" placeholder="0" /></div>
@@ -152,6 +153,8 @@ const boloUnits = computed(() => {
 
 function addRow() { form.value.foodRows.push(defaultRow()) }
 function removeRow(i) { form.value.foodRows.splice(i, 1) }
+function triggerScan() { addRow() }  // aggiunge una riga e l'utente scansiona da lì
+function resetMacros() { form.value.mC = null; form.value.mP = null; form.value.mG = null; form.value.mF = null }
 function updateRowMacros(i, m) {
   if (!form.value.foodRows[i]) return
   // m.c/p/g/f/k are per-100g values emitted by FoodRow

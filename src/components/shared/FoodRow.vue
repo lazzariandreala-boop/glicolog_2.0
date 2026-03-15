@@ -1,58 +1,56 @@
 <template>
   <div class="food-row">
-    <div class="fr-top">
-      <!-- Nome alimento + autocomplete -->
-      <div class="fr-name-wrap">
-        <input
-          class="fi fr-name-inp"
-          type="text"
-          :placeholder="'Alimento ' + (index + 1)"
-          v-model="localName"
-          @input="onNameInput"
-          @focus="showAc = true"
-          autocomplete="off"
-          autocorrect="off"
-        />
-        <!-- Dropdown autocomplete -->
-        <div class="ac" :class="{ on: showAc && acResults.length > 0 }">
-          <div
-            v-for="r in acResults"
-            :key="r.name"
-            class="aci"
-            @mousedown.prevent="pickResult(r)"
-            @touchstart.prevent="pickResult(r)"
-          >
-            <div class="aci-name-full">{{ r.name }}<span v-if="r.online" class="aci-src">web</span></div>
-            <div v-if="r.mac" class="aci-mac-row">
-              <span class="aci-c">C {{ r.mac.c }}g</span>
-              <span class="aci-sep">·</span>
-              <span>P {{ r.mac.p }}g</span>
-              <span class="aci-sep">·</span>
-              <span class="aci-k">{{ r.mac.k }} kcal</span>
-              <span class="aci-unit">/100g</span>
-            </div>
+    <!-- Nome alimento full-width + autocomplete -->
+    <div class="fr-name-wrap">
+      <input
+        class="fi fr-name-inp"
+        type="text"
+        :placeholder="'Cerca alimento ' + (index + 1) + '…'"
+        v-model="localName"
+        @input="onNameInput"
+        @focus="showAc = true"
+        autocomplete="off"
+        autocorrect="off"
+      />
+      <!-- Dropdown autocomplete -->
+      <div class="ac" :class="{ on: showAc && acResults.length > 0 }">
+        <div
+          v-for="r in acResults"
+          :key="r.name"
+          class="aci"
+          @mousedown.prevent="pickResult(r)"
+          @touchstart.prevent="pickResult(r)"
+        >
+          <div class="aci-name-full">{{ r.name }}<span v-if="r.online" class="aci-src">web</span></div>
+          <div v-if="r.mac" class="aci-mac-row">
+            <span class="aci-c">C {{ r.mac.c }}g</span>
+            <span class="aci-sep">·</span>
+            <span>P {{ r.mac.p }}g</span>
+            <span class="aci-sep">·</span>
+            <span class="aci-k">{{ r.mac.k }} kcal</span>
+            <span class="aci-unit">/100g</span>
           </div>
-          <div v-if="searching" class="aci-spin">🔍 Ricerca online…</div>
-          <div v-if="acResults.length > 0" class="aci-footer" @mousedown.prevent="searchOnline">🔍 Ricerca approfondita online…</div>
         </div>
+        <div v-if="searching" class="aci-spin">🔍 Ricerca online…</div>
+        <div v-if="acResults.length > 0" class="aci-footer" @mousedown.prevent="searchOnline">🔍 Ricerca approfondita online…</div>
       </div>
+    </div>
 
-      <!-- Quantità -->
-      <div class="fr-right">
-        <div class="fr-qty-wrap">
-          <input
-            class="fi fr-qty-inp"
-            type="number"
-            inputmode="decimal"
-            :placeholder="isDrink ? '200' : '100'"
-            v-model.number="localGrams"
-            @input="recalc"
-          />
-          <span class="fr-unit">{{ isDrink ? 'ml' : 'g' }}</span>
-        </div>
-        <button class="fr-scan-btn" @click="scannerOpen = true" title="Scansiona barcode">⬛</button>
-        <button class="fr-del-btn" @click="$emit('remove')">×</button>
+    <!-- Riga inferiore: scan + grammi + elimina -->
+    <div class="fr-controls">
+      <button class="fr-scan-btn" @click="scannerOpen = true">📷 Scansiona alimento</button>
+      <div class="fr-qty-wrap">
+        <input
+          class="fi fr-qty-inp"
+          type="number"
+          inputmode="decimal"
+          :placeholder="isDrink ? '200' : '100'"
+          v-model.number="localGrams"
+          @input="recalc"
+        />
+        <span class="fr-unit">{{ isDrink ? 'ml' : 'g' }}</span>
       </div>
+      <button class="fr-del-btn" @click="$emit('remove')">×</button>
     </div>
 
     <BarcodeScanner v-model="scannerOpen" @found="onBarcodeFound" />

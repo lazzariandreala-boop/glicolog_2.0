@@ -42,11 +42,12 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useAppStore } from '@/stores/app.js'
-import { useEntriesStore } from '@/stores/index.js'
+import { useEntriesStore, useConfigStore } from '@/stores/index.js'
 import { getDK, p2 } from '@/data/constants.js'
 
 const app = useAppStore()
 const entriesStore = useEntriesStore()
+const cfgStore = useConfigStore()
 
 const entries = computed(() => entriesStore.forDay(getDK(app.dayOffset)))
 
@@ -83,6 +84,14 @@ function entryTitle(e) {
   return e.type
 }
 
+function glicColor(val) {
+  if (!val) return 'var(--txt2)'
+  const cfg = cfgStore.cfg
+  if (val < (cfg.targetMin || 70)) return 'var(--r)'
+  if (val > (cfg.targetMax || 180)) return 'var(--o)'
+  return 'var(--g)'
+}
+
 function entrySubtitle(e) {
   const parts = []
   if (e.type === 'pasto' || e.type === 'spuntino' || e.type === 'correzione') {
@@ -94,6 +103,7 @@ function entrySubtitle(e) {
     }
     if (e.carbs > 0) parts.push(`${Math.round(e.carbs)}g C`)
     if (e.kcal > 0) parts.push(`${Math.round(e.kcal)} kcal`)
+    if (e.bolo > 0) parts.push(`💉 ${e.bolo}U`)
   }
   if (e.type === 'glicemia') {
     if (e.trend) parts.push('Trend: ' + e.trend)
@@ -121,11 +131,13 @@ function entryValue(e) {
   if (e.type === 'sport') return `${e.duration}'`
   if (e.type === 'correzione') return `${Math.round(e.carbs)}g C`
   if (e.type === 'acqua') return `${e.ml}ml`
+  if ((e.type === 'pasto' || e.type === 'spuntino') && e.glic > 0) return `${e.glic} mg/dL ${e.trend || ''}`
   return ''
 }
 
 function entryColor(e) {
-  if (e.type === 'glicemia') return 'var(--b)'
+  if (e.type === 'glicemia') return glicColor(e.glic || e.value)
+  if ((e.type === 'pasto' || e.type === 'spuntino') && e.glic > 0) return glicColor(e.glic)
   if (e.type === 'insulina') return 'var(--p)'
   if (e.type === 'alcool') return 'var(--alc)'
   if (e.type === 'sport') return '#29b6f6'

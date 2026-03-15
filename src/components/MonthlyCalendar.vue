@@ -26,6 +26,26 @@
       </div>
     </div>
 
+    <!-- Statistiche mensili -->
+    <div class="gcal-monthly-stats">
+      <div class="gcal-mstat">
+        <span class="gcal-mstat-v" :style="{ color: monthAvgColor }">{{ monthStats.avg ?? '—' }}<span v-if="monthStats.avg" style="font-size:.65rem;font-weight:400"> mg/dL</span></span>
+        <span class="gcal-mstat-l">Media mese</span>
+      </div>
+      <div class="gcal-mstat">
+        <span class="gcal-mstat-v" style="color:var(--b)">{{ monthStats.activeDays }}</span>
+        <span class="gcal-mstat-l">Giorni attivi</span>
+      </div>
+      <div class="gcal-mstat">
+        <span class="gcal-mstat-v" style="color:var(--r)">{{ monthStats.lowCount }}</span>
+        <span class="gcal-mstat-l">Episodi bassi</span>
+      </div>
+      <div class="gcal-mstat">
+        <span class="gcal-mstat-v" style="color:var(--o)">{{ monthStats.highCount }}</span>
+        <span class="gcal-mstat-l">Episodi alti</span>
+      </div>
+    </div>
+
     <!-- Legenda -->
     <div class="gcal-leg">
       <span style="color:var(--r)">↓ bassa</span>
@@ -98,6 +118,31 @@ const statusCache = computed(() => {
   })
   Object.values(cache).forEach(v => { v.avg = v._n ? Math.round(v._sum / v._n) : null })
   return cache
+})
+
+const monthStats = computed(() => {
+  const cache = statusCache.value
+  let sum = 0, n = 0, lowCount = 0, highCount = 0, activeDays = 0
+  Object.values(cache).forEach(v => {
+    if (v._n > 0) {
+      activeDays++
+      sum += v._sum
+      n += v._n
+      lowCount  += v.lowCount
+      highCount += v.highCount
+    }
+  })
+  return { avg: n ? Math.round(sum / n) : null, activeDays, lowCount, highCount }
+})
+
+const monthAvgColor = computed(() => {
+  const v = monthStats.value.avg
+  if (!v) return 'var(--txt2)'
+  const tMin = configStore.cfg.targetMin || 100
+  const tMax = configStore.cfg.targetMax || 160
+  if (v < tMin) return 'var(--r)'
+  if (v > tMax) return 'var(--o)'
+  return 'var(--g)'
 })
 
 function dayStatus(day) {
@@ -272,6 +317,18 @@ function goToDay(day) {
 }
 .gcal-badge-r { color: var(--r); background: rgba(255,82,82,.1); }
 .gcal-badge-o { color: var(--o); background: rgba(255,171,64,.1); }
+
+/* Statistiche mensili */
+.gcal-monthly-stats {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+  margin-top: 10px; margin-bottom: 6px;
+}
+.gcal-mstat {
+  background: var(--card2); border: 1px solid var(--bdr); border-radius: 9px;
+  padding: 8px 4px; text-align: center;
+}
+.gcal-mstat-v { display: block; font-size: 1.15rem; font-weight: 800; font-family: var(--mono); line-height: 1.1; color: var(--txt); }
+.gcal-mstat-l { display: block; font-size: .56rem; font-weight: 600; color: var(--txt2); text-transform: uppercase; letter-spacing: .3px; margin-top: 3px; }
 
 /* Legenda */
 .gcal-leg {

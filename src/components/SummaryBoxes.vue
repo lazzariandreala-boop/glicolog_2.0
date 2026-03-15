@@ -44,7 +44,7 @@
       </div>
 
       <!-- Passi -->
-      <div class="sum-box steps" style="cursor:pointer; grid-column: 1 / -1;" @click="openSteps">
+      <div class="sum-box steps sum-wide" style="cursor:pointer" @click="openSteps">
         <div class="sum-ico">👟</div>
         <template v-if="stepsToday">
           <div style="display:flex; align-items:baseline; gap:8px; flex-wrap:wrap">
