@@ -319,6 +319,12 @@ body { font-family: var(--sans); color: var(--txt); background: var(--bg); min-h
 .mbox-t { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px }
 .mbox-suggest { background: none; border: none; color: var(--o); font-size: .72rem; font-family: var(--sans); font-weight: 600; cursor: pointer; padding: 0 }
 
+/* ── APERITIVI ROW ── */
+.aperi-row { display: flex; align-items: center; gap: 6px; margin-bottom: 3px }
+.aperi-sel { flex: 1; min-width: 0; font-size: .88rem !important; padding: 9px 10px !important }
+.aperi-qty { flex: 0 0 72px; min-width: 0 }
+.aperi-qty .fr-qty-inp { padding: 8px 24px 8px 8px !important; font-size: .82rem !important }
+
 /* ── BOLO BOX ── */
 .bolo-box { display: none; background: rgba(206,147,216,.1); border: 1.5px solid rgba(206,147,216,.3); border-radius: 16px; padding: 14px 16px; margin-bottom: 16px; align-items: center; gap: 12px }
 .bolo-box.on { display: flex }

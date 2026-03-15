@@ -4,26 +4,22 @@
 
     <!-- BEVANDE ALCOLICHE -->
     <div class="pdiv">🍷 Bevande</div>
-    <div>
+    <div class="food-rows">
       <div v-for="(row, i) in form.drinks" :key="row.id" class="food-row">
-        <div class="fr-top">
-          <div class="fr-name-wrap" style="flex:1">
-            <select class="fi fr-name-inp" v-model="row.typeKey">
-              <option value="">— bevanda —</option>
-              <template v-for="(keys, grp) in alcGroups" :key="grp">
-                <optgroup :label="grp">
-                  <option v-for="k in keys" :key="k" :value="k">{{ alcDb[k]?.ico }} {{ alcDb[k]?.l }}</option>
-                </optgroup>
-              </template>
-            </select>
+        <div class="aperi-row">
+          <select class="fi aperi-sel" v-model="row.typeKey">
+            <option value="">— bevanda —</option>
+            <template v-for="(keys, grp) in alcGroups" :key="grp">
+              <optgroup :label="grp">
+                <option v-for="k in keys" :key="k" :value="k">{{ alcDb[k]?.ico }} {{ alcDb[k]?.l }}</option>
+              </optgroup>
+            </template>
+          </select>
+          <div class="fr-qty-wrap aperi-qty">
+            <input class="fi fr-qty-inp" type="number" inputmode="numeric" v-model.number="row.qty" min="1" max="20" />
+            <span class="fr-unit">×</span>
           </div>
-          <div class="fr-right">
-            <div class="fr-qty-wrap">
-              <input class="fi fr-qty-inp" type="number" inputmode="numeric" v-model.number="row.qty" min="1" max="20" />
-              <span class="fr-unit">×</span>
-            </div>
-            <button class="fr-del-btn" @click="removeDrink(i)">×</button>
-          </div>
+          <button class="fr-del-btn" @click="removeDrink(i)">×</button>
         </div>
         <div class="fr-macros" v-if="row.typeKey && alcDb[row.typeKey]">
           <span class="food-row-mac-chip"><span>{{ (alcDb[row.typeKey].u * row.qty).toFixed(1) }}</span> U alc</span>
@@ -38,26 +34,22 @@
 
     <!-- STUZZICHINI -->
     <div class="pdiv">🍟 Cibo</div>
-    <div>
+    <div class="food-rows">
       <div v-for="(row, i) in form.items" :key="row.id" class="food-row">
-        <div class="fr-top">
-          <div class="fr-name-wrap" style="flex:1">
-            <select class="fi fr-name-inp" v-model="row.itemKey" @change="onChangeItem(i)">
-              <option value="">— stuzzichino —</option>
-              <template v-for="(items, grp) in aperiGroups" :key="grp">
-                <optgroup :label="grp">
-                  <option v-for="item in items" :key="item.k" :value="item.k">{{ item.ico }} {{ item.l }}</option>
-                </optgroup>
-              </template>
-            </select>
+        <div class="aperi-row">
+          <select class="fi aperi-sel" v-model="row.itemKey" @change="onChangeItem(i)">
+            <option value="">— stuzzichino —</option>
+            <template v-for="(items, grp) in aperiGroups" :key="grp">
+              <optgroup :label="grp">
+                <option v-for="item in items" :key="item.k" :value="item.k">{{ item.ico }} {{ item.l }}</option>
+              </optgroup>
+            </template>
+          </select>
+          <div class="fr-qty-wrap aperi-qty">
+            <input class="fi fr-qty-inp" type="number" inputmode="numeric" v-model.number="row.grams" min="1" max="500" />
+            <span class="fr-unit">g</span>
           </div>
-          <div class="fr-right">
-            <div class="fr-qty-wrap">
-              <input class="fi fr-qty-inp" type="number" inputmode="numeric" v-model.number="row.grams" min="1" max="500" />
-              <span class="fr-unit">g</span>
-            </div>
-            <button class="fr-del-btn" @click="removeItem(i)">×</button>
-          </div>
+          <button class="fr-del-btn" @click="removeItem(i)">×</button>
         </div>
         <div class="fr-macros" v-if="row.itemKey && macForItem(row)">
           <span class="food-row-mac-chip fc"><span>{{ macForItem(row).c.toFixed(1) }}g</span> C</span>
@@ -231,7 +223,8 @@ function save() {
       title: '💉 Bolo per l\'aperitivo?',
       msg: `${carbs.toFixed(1)}g di carboidrati totali. Vuoi fare il bolo?`,
       suggestedUnits: units,
-      note: `Bolo aperitivo (${label})`
+      note: `Bolo aperitivo (${label})`,
+      glucoseTs: form.value.ts
     })
   }
   close()
