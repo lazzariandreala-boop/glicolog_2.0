@@ -199,7 +199,7 @@ function goToDay(day) {
 function drawMonthChart() {
   const canvas = monthChartEl.value
   if (!canvas) return
-  const W = canvas.parentElement?.clientWidth || 300
+  const W = canvas.getBoundingClientRect().width || canvas.parentElement?.clientWidth || 300
   if (!W) return
   const H = 70
   const dpr = window.devicePixelRatio || 1
@@ -338,11 +338,11 @@ watch([statusCache, viewMonth, viewYear], () => nextTick(drawMonthChart))
   letter-spacing: .3px;
   text-transform: uppercase;
 }
-.gcal-empty { min-height: 36px; }
+.gcal-empty { min-height: 26px; }
 
 .gcal-day {
-  min-height: 58px;
-  border-radius: 8px;
+  min-height: 46px;
+  border-radius: 7px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -351,13 +351,13 @@ watch([statusCache, viewMonth, viewYear], () => nextTick(drawMonthChart))
   cursor: pointer;
   border: 1px solid transparent;
   transition: background .12s;
-  padding: 4px 1px 3px;
+  padding: 3px 1px 2px;
 }
 .gcal-day:active { background: var(--bdr) }
 .gcal-future { opacity: .3; cursor: default; pointer-events: none; }
 
 .gcal-num {
-  font-size: .78rem;
+  font-size: .72rem;
   font-family: var(--mono);
   color: var(--txt2);
   line-height: 1;
@@ -384,7 +384,7 @@ watch([statusCache, viewMonth, viewYear], () => nextTick(drawMonthChart))
 
 /* Media glicemica */
 .gcal-avg {
-  font-size: .68rem;
+  font-size: .62rem;
   font-family: var(--mono);
   font-weight: 700;
   line-height: 1;
