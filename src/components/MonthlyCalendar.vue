@@ -20,8 +20,8 @@
         <span class="gcal-num">{{ day }}</span>
         <span v-if="dayStatus(day).avg != null" class="gcal-avg" :class="avgColorClass(day)">{{ dayStatus(day).avg }}</span>
         <div class="gcal-badges" v-if="dayStatus(day).lowCount || dayStatus(day).highCount">
-          <span v-if="dayStatus(day).lowCount"  class="gcal-badge gcal-badge-r">{{ dayStatus(day).lowCount }}</span>
-          <span v-if="dayStatus(day).highCount" class="gcal-badge gcal-badge-o">{{ dayStatus(day).highCount }}</span>
+          <span v-if="dayStatus(day).lowCount"  class="gcal-badge gcal-badge-r">▼{{ dayStatus(day).lowCount }}</span>
+          <span v-if="dayStatus(day).highCount" class="gcal-badge gcal-badge-o">▲{{ dayStatus(day).highCount }}</span>
         </div>
       </div>
     </div>
@@ -337,11 +337,11 @@ watch([statusCache, viewMonth, viewYear], () => nextTick(drawMonthChart))
   letter-spacing: .3px;
   text-transform: uppercase;
 }
-.gcal-empty { min-height: 26px; }
+.gcal-empty { min-height: 30px; }
 
 .gcal-day {
-  min-height: 46px;
-  border-radius: 7px;
+  min-height: 54px;
+  border-radius: 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -356,7 +356,7 @@ watch([statusCache, viewMonth, viewYear], () => nextTick(drawMonthChart))
 .gcal-future { opacity: .3; cursor: default; pointer-events: none; }
 
 .gcal-num {
-  font-size: .72rem;
+  font-size: .76rem;
   font-family: var(--mono);
   color: var(--txt2);
   line-height: 1;
@@ -383,7 +383,7 @@ watch([statusCache, viewMonth, viewYear], () => nextTick(drawMonthChart))
 
 /* Media glicemica */
 .gcal-avg {
-  font-size: .62rem;
+  font-size: .65rem;
   font-family: var(--mono);
   font-weight: 700;
   line-height: 1;

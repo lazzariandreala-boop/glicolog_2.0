@@ -23,16 +23,27 @@
       </div>
     </div>
 
+    <!-- <div class="fr">
+      <span class="fl">🩸 Glicemia (mg/dL)</span>
+      <input class="fi big" type="number" inputmode="numeric" v-model.number="form.glic" placeholder="mg/dL (opzionale)" />
+    </div>
+
+    <div class="fr">
+      <span class="fl">Direzionalità ↗↘</span>
+      <TrendSelector v-model="form.trend" />
+    </div> -->
+
     <!-- Macro box -->
     <div class="mbox">
       <div class="mbox-t">
-        <span>🥗 Macronutrienti (opzionale override)</span>
+        <span>🥗 Macronutrienti</span>
+        <button class="mbox-suggest" @click="form.mC=null;form.mP=null;form.mG=null;form.mF=null">✨ Suggerisci macro</button>
       </div>
       <div class="g4">
-        <div class="fr"><span class="fl">Carbo g</span><input class="fi" type="number" inputmode="decimal" v-model.number="form.mC" placeholder="0" /></div>
-        <div class="fr"><span class="fl">Prot g</span><input class="fi" type="number" inputmode="decimal" v-model.number="form.mP" placeholder="0" /></div>
-        <div class="fr"><span class="fl">Grassi g</span><input class="fi" type="number" inputmode="decimal" v-model.number="form.mG" placeholder="0" /></div>
-        <div class="fr"><span class="fl">Fibre g</span><input class="fi" type="number" inputmode="decimal" v-model.number="form.mF" placeholder="0" /></div>
+        <div class="fr"><span class="fl">Carbo g</span><input class="fi" type="number" inputmode="decimal" v-model.number="form.mC" :placeholder="String(totals.c)" /></div>
+        <div class="fr"><span class="fl">Prot g</span><input class="fi" type="number" inputmode="decimal" v-model.number="form.mP" :placeholder="String(totals.p)" /></div>
+        <div class="fr"><span class="fl">Grassi g</span><input class="fi" type="number" inputmode="decimal" v-model.number="form.mG" :placeholder="String(totals.g)" /></div>
+        <div class="fr"><span class="fl">Fibre g</span><input class="fi" type="number" inputmode="decimal" v-model.number="form.mF" :placeholder="String(totals.f)" /></div>
       </div>
     </div>
 
@@ -51,6 +62,7 @@ import { useEntriesStore } from '@/stores/index.js'
 import PanelBase from './PanelBase.vue'
 import FoodRow from '@/components/shared/FoodRow.vue'
 import TimeRow from '@/components/shared/TimeRow.vue'
+// import TrendSelector from '@/components/shared/TrendSelector.vue'
 
 const app = useAppStore()
 const entriesStore = useEntriesStore()
@@ -60,7 +72,7 @@ const isEdit = ref(false)
 
 const defaultRow = () => ({ id: Date.now() + Math.random(), name: '', grams: 0, c100: 0, p100: 0, g100: 0, f100: 0, k100: 0, isDrink: false })
 
-const form = ref({ foodRows: [defaultRow()], mC: null, mP: null, mG: null, mF: null, ts: Date.now() })
+const form = ref({ foodRows: [defaultRow()], glic: null, trend: null, mC: null, mP: null, mG: null, mF: null, ts: Date.now() })
 
 const totals = computed(() => {
   let c = 0, p = 0, g = 0, f = 0, k = 0
@@ -88,19 +100,19 @@ watch(() => app.openPanel, (p) => {
     const e = app.editEntry
     if (e && e._prefill) {
       isEdit.value = false
-      form.value = { foodRows: e.foodRows?.length ? e.foodRows : [defaultRow()], mC: null, mP: null, mG: null, mF: null, ts: e.ts || Date.now() }
+      form.value = { foodRows: e.foodRows?.length ? e.foodRows : [defaultRow()], glic: null, trend: null, mC: null, mP: null, mG: null, mF: null, ts: e.ts || Date.now() }
     } else if (e) {
       isEdit.value = true
-      form.value = { foodRows: e.foodRows?.length ? e.foodRows.map(r => ({ ...defaultRow(), ...r })) : [defaultRow()], mC: e.carbs || null, mP: e.protein || null, mG: e.fat || null, mF: e.fiber || null, ts: e.ts }
+      form.value = { foodRows: e.foodRows?.length ? e.foodRows.map(r => ({ ...defaultRow(), ...r })) : [defaultRow()], glic: e.glic || null, trend: e.trend || null, mC: e.carbs || null, mP: e.protein || null, mG: e.fat || null, mF: e.fiber || null, ts: e.ts }
     } else {
       isEdit.value = false
-      form.value = { foodRows: [defaultRow()], mC: null, mP: null, mG: null, mF: null, ts: Date.now() }
+      form.value = { foodRows: [defaultRow()], glic: null, trend: null, mC: null, mP: null, mG: null, mF: null, ts: Date.now() }
     }
   }
 })
 
 function save() {
-  const entry = { type: 'correzione', foodRows: form.value.foodRows.filter(r => r.name), food: form.value.foodRows.map(r => r.name).filter(Boolean).join(', '), carbs: form.value.mC ?? totals.value.c, protein: form.value.mP ?? totals.value.p, fat: form.value.mG ?? totals.value.g, fiber: form.value.mF ?? totals.value.f, kcal: totals.value.k, ts: form.value.ts }
+  const entry = { type: 'correzione', foodRows: form.value.foodRows.filter(r => r.name), food: form.value.foodRows.map(r => r.name).filter(Boolean).join(', '), glic: form.value.glic || 0, trend: form.value.trend, carbs: form.value.mC ?? totals.value.c, protein: form.value.mP ?? totals.value.p, fat: form.value.mG ?? totals.value.g, fiber: form.value.mF ?? totals.value.f, kcal: totals.value.k, ts: form.value.ts }
   if (isEdit.value && app.editEntry) { entriesStore.update(app.editEntry.id, entry); app.toast('✅ Correzione aggiornata') }
   else { entriesStore.add(entry); app.toast('🍬 Correzione salvata') }
   close()

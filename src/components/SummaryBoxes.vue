@@ -3,7 +3,7 @@
     <div class="sum-grid">
       <!-- Glicemia -->
       <div class="sum-box glic" @click="app.openPanelFor('glicemia')">
-        <div class="sum-ico">💉</div>
+        <div class="sum-ico">🩸</div>
         <div>
           <span class="sum-val" :style="{ color: glicColor }">{{ glicAvg || '—' }}</span>
           <span v-if="glicAvg" class="sum-unit">mg/dL</span>

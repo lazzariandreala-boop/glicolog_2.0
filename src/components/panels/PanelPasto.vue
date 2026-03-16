@@ -38,7 +38,7 @@
 
     <!-- Glicemia -->
     <div class="fr">
-      <span class="fl">💉 Glicemia (mg/dL)</span>
+      <span class="fl">🩸 Glicemia (mg/dL)</span>
       <input class="fi big" type="number" inputmode="numeric" v-model.number="form.glic" placeholder="—" />
     </div>
 
@@ -67,10 +67,10 @@
         <button class="mbox-suggest" @click="resetMacros">✨ Suggerisci macro</button>
       </div>
       <div class="g4">
-        <div class="fr"><span class="fl">Carbo g</span><input class="fi" type="number" inputmode="decimal" v-model.number="form.mC" placeholder="0" /></div>
-        <div class="fr"><span class="fl">Prot g</span><input class="fi" type="number" inputmode="decimal" v-model.number="form.mP" placeholder="0" /></div>
-        <div class="fr"><span class="fl">Grassi g</span><input class="fi" type="number" inputmode="decimal" v-model.number="form.mG" placeholder="0" /></div>
-        <div class="fr"><span class="fl">Fibre g</span><input class="fi" type="number" inputmode="decimal" v-model.number="form.mF" placeholder="0" /></div>
+        <div class="fr"><span class="fl">Carbo g</span><input class="fi" type="number" inputmode="decimal" v-model.number="form.mC" :placeholder="String(totals.c)" /></div>
+        <div class="fr"><span class="fl">Prot g</span><input class="fi" type="number" inputmode="decimal" v-model.number="form.mP" :placeholder="String(totals.p)" /></div>
+        <div class="fr"><span class="fl">Grassi g</span><input class="fi" type="number" inputmode="decimal" v-model.number="form.mG" :placeholder="String(totals.g)" /></div>
+        <div class="fr"><span class="fl">Fibre g</span><input class="fi" type="number" inputmode="decimal" v-model.number="form.mF" :placeholder="String(totals.f)" /></div>
       </div>
     </div>
 

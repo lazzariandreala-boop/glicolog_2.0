@@ -78,7 +78,7 @@ const groups = computed(() => {
 })
 
 function entryIcon(e) {
-  const icons = { pasto:'🍽️', spuntino:'🍎', glicemia:'💉', insulina:'🩺', alcool:'🍷', sport:'🏃', aperitivi:'🥂', acqua:'💧', correzione: '🍬' }
+  const icons = { pasto:'🍽️', spuntino:'🍎', glicemia:'🩸', insulina:'💉', alcool:'🍷', sport:'🏃', aperitivi:'🥂', acqua:'💧', correzione: '🍬' }
   return icons[e.type] || '📋'
 }
 

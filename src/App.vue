@@ -181,7 +181,7 @@ function onTouchMove(e) {
   if (!pulling || !ptrBar.value) return
   const dy = e.touches[0].clientY - startY
   if (dy <= 0) { ptrBar.value.style.height = '0'; return }
-  const h = Math.min(dy * 0.4, 52)
+  const h = Math.min(dy * 0.4, 68)
   ptrBar.value.style.height = h + 'px'
 }
 function onTouchEnd() {

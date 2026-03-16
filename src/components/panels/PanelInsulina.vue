@@ -1,6 +1,6 @@
 <template>
   <PanelBase :visible="visible">
-    <div class="pt">🩺 {{ isEdit ? 'Modifica insulina' : 'Nuova insulina' }}</div>
+    <div class="pt">💉 {{ isEdit ? 'Modifica insulina' : 'Nuova insulina' }}</div>
 
     <div class="fr">
       <span class="fl">Tipo</span>
@@ -97,7 +97,7 @@ function save() {
   if (!form.value.units || form.value.units <= 0) { app.toast('Inserisci le unità'); return }
   const entry = { type: 'insulina', insulinSubtype: form.value.insulinSubtype, insulinType: form.value.insulinType, units: Number(form.value.units), note: form.value.note, ts: form.value.ts }
   if (isEdit.value && app.editEntry) { entriesStore.update(app.editEntry.id, entry); app.toast('✅ Insulina aggiornata') }
-  else { entriesStore.add(entry); app.toast('🩺 ' + form.value.units + 'U salvate') }
+  else { entriesStore.add(entry); app.toast('💉 ' + form.value.units + 'U salvate') }
   close()
 }
 function del() { app.confirmDelete(app.editEntry.id); close() }

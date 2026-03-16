@@ -1,6 +1,6 @@
 <template>
   <PanelBase :visible="visible">
-    <div class="pt">💉 {{ isEdit ? 'Modifica glicemia' : 'Nuova glicemia' }}</div>
+    <div class="pt">🩸 {{ isEdit ? 'Modifica glicemia' : 'Nuova glicemia' }}</div>
 
     <div class="fr">
       <span class="fl">Glicemia (mg/dL)</span>

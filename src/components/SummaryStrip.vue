@@ -2,11 +2,11 @@
   <div class="strip">
     <!-- Glicemia media -->
     <div v-if="glicAvg" class="chip" :class="glicClass">
-      💉 <b>{{ glicAvg }} mg/dL</b>
+      🩸 <b>{{ glicAvg }} mg/dL</b>
     </div>
     <!-- Insulina tot -->
     <div v-if="insulinTot > 0" class="chip hi">
-      🩺 <b>{{ insulinTot.toFixed(1) }}U</b>
+      💉 <b>{{ insulinTot.toFixed(1) }}U</b>
     </div>
     <!-- Carbo tot -->
     <div v-if="carbsTot > 0" class="chip hi">

@@ -87,7 +87,7 @@
   <!-- GLIC ALERT MODAL (hypo / hyper / insulin prompt) -->
   <div class="glic-alert-bg" :class="{ on: app.showGlicAlert }" v-if="app.glicAlertData">
     <div class="glic-alert-card">
-      <div class="glic-alert-icon">{{ app.glicAlertData.type === 'low' ? '🍬' : '💉' }}</div>
+      <div class="glic-alert-icon">{{ app.glicAlertData.type === 'low' ? '🍬' : '🩸' }}</div>
       <div class="glic-alert-title">{{ app.glicAlertData.title }}</div>
       <div class="glic-alert-msg">{{ app.glicAlertData.msg }}</div>
       <div v-if="app.glicAlertData.type === 'high' || app.glicAlertData.type === 'insulin_prompt'" class="glic-alert-units">
