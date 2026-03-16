@@ -63,7 +63,7 @@ import { getDK } from '@/data/constants.js'
 const app = useAppStore()
 const entriesStore = useEntriesStore()
 const cfgStore = useConfigStore()
-const open = ref(false)
+const open = ref(true)
 
 const entries = computed(() => entriesStore.forDay(getDK(app.dayOffset)))
 const cfg = computed(() => cfgStore.cfg)

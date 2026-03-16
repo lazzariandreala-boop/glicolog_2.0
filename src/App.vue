@@ -16,48 +16,83 @@
     <!-- PULL TO REFRESH indicator -->
     <div class="ptr-bar" ref="ptrBar">↻ Rilascia per aggiornare</div>
 
-    <!-- BIG 3 + AZIONI RAPIDE -->
-    <Big3Actions />
+    <!-- TAB CONTENT -->
+    <div class="tab-content">
 
-    <!-- STRIP RIEPILOGO -->
-    <SummaryStrip />
+      <!-- GIORNALE (home): chip riepilogo + navigazione giorno + timeline -->
+      <template v-if="activeTab === 'entries'">
+        <SummaryStrip />
+        <DayNavigation />
+        <Timeline />
+      </template>
 
-    <!-- SEZIONE STATISTICHE (collapsible) -->
-    <div class="sw">
-      <button class="st-tog" :class="{ open: statsOpen }" @click="statsOpen = !statsOpen">
-        <span>📊 Statistiche e grafico</span>
-        <span class="arr">▼</span>
-      </button>
-      <div class="st-body" :class="{ show: statsOpen }">
-        <GlucoseChart />
-      </div>
+      <!-- STATISTICHE: grafico + storico -->
+      <template v-else-if="activeTab === 'stats'">
+        <div class="tab-pad">
+          <GlucoseChart />
+        </div>
+      </template>
+
+      <!-- RIEPILOGO MENSILE -->
+      <template v-else-if="activeTab === 'calendar'">
+        <div class="tab-pad">
+          <MonthlyCalendar />
+        </div>
+      </template>
+
+      <!-- NUTRIZIONE: macro + 3 box riepilogo -->
+      <template v-else-if="activeTab === 'nutrition'">
+        <NutritionSection />
+        <SummaryBoxes />
+      </template>
+
     </div>
 
-    <!-- RIEPILOGO MENSILE (collapsible) -->
-    <div class="sw">
-      <button class="st-tog" :class="{ open: monthOpen }" @click="monthOpen = !monthOpen">
-        <span>📅 Riepilogo mensile</span>
-        <span class="arr">▼</span>
+    <!-- BOTTOM NAVBAR -->
+    <nav class="bnav">
+      <button class="bnav-tab" :class="{ active: activeTab === 'entries' }" @click="activeTab = 'entries'">
+        <span class="bnav-ico">📋</span><span class="bnav-lbl">Giornale</span>
       </button>
-      <div class="st-body" :class="{ show: monthOpen }">
-        <MonthlyCalendar />
+      <button class="bnav-tab" :class="{ active: activeTab === 'stats' }" @click="activeTab = 'stats'">
+        <span class="bnav-ico">📊</span><span class="bnav-lbl">Grafici</span>
+      </button>
+      <button class="bnav-add" @click="showQuickAdd = true">+</button>
+      <button class="bnav-tab" :class="{ active: activeTab === 'calendar' }" @click="activeTab = 'calendar'">
+        <span class="bnav-ico">📅</span><span class="bnav-lbl">Mensile</span>
+      </button>
+      <button class="bnav-tab" :class="{ active: activeTab === 'nutrition' }" @click="activeTab = 'nutrition'">
+        <span class="bnav-ico">🥗</span><span class="bnav-lbl">Nutrizione</span>
+      </button>
+    </nav>
+
+    <!-- OVERLAY (pannelli + quick add) -->
+    <div class="ov" :class="{ on: appStore.openPanel || showQuickAdd }" @click="closeOverlay()" />
+
+    <!-- QUICK ADD SHEET -->
+    <div class="qa-sheet" :class="{ on: showQuickAdd }">
+      <div class="qa-handle"></div>
+      <div class="qa-title">Inserimento rapido</div>
+      <div class="home-grid">
+        <button class="hg-btn hg-p"     @click="appStore.openPanelFor('pasto')">
+          <span class="hg-ico">🍽️</span><span class="hg-lbl">Pasto</span>
+        </button>
+        <button class="hg-btn hg-s"     @click="appStore.openPanelFor('spuntino')">
+          <span class="hg-ico">🍎</span><span class="hg-lbl">Spuntino</span>
+        </button>
+        <button class="hg-btn hg-glic"  @click="appStore.openPanelFor('glicemia')">
+          <span class="hg-ico">🩸</span><span class="hg-lbl">Glicemia</span>
+        </button>
+        <button class="hg-btn hg-ins"   @click="appStore.openPanelFor('insulina')">
+          <span class="hg-ico">💉</span><span class="hg-lbl">Insulina</span>
+        </button>
+        <button class="hg-btn hg-cor"   @click="appStore.openPanelFor('correzione')">
+          <span class="hg-ico">🍬</span><span class="hg-lbl">Correzione</span>
+        </button>
+        <button class="hg-btn hg-aperi" @click="appStore.openPanelFor('aperitivi')">
+          <span class="hg-ico">🥂</span><span class="hg-lbl">Aperitivo</span>
+        </button>
       </div>
     </div>
-
-    <!-- NUTRIZIONE DI OGGI -->
-    <NutritionSection />
-
-    <!-- NAVIGAZIONE GIORNI -->
-    <DayNavigation />
-
-    <!-- RIEPILOGO BOXES -->
-    <SummaryBoxes />
-
-    <!-- TIMELINE -->
-    <Timeline />
-
-    <!-- OVERLAY SCURO -->
-    <div class="ov" :class="{ on: appStore.openPanel }" @click="appStore.closePanel()" />
 
     <!-- PANNELLI (bottom sheets) -->
     <PanelPasto />
@@ -79,14 +114,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useAppStore } from '@/stores/app.js'
 import { useStepsStore } from '@/stores/index.js'
 import { getDK } from '@/data/constants.js'
 
 // Components
 import AppHeader        from '@/components/AppHeader.vue'
-import Big3Actions      from '@/components/Big3Actions.vue'
 import SummaryStrip     from '@/components/SummaryStrip.vue'
 import NutritionSection from '@/components/NutritionSection.vue'
 import DayNavigation    from '@/components/DayNavigation.vue'
@@ -98,22 +132,30 @@ import GlucoseChart     from '@/components/GlucoseChart.vue'
 import MonthlyCalendar  from '@/components/MonthlyCalendar.vue'
 
 // Panels
-import PanelPasto     from '@/components/panels/PanelPasto.vue'
-import PanelSpuntino  from '@/components/panels/PanelSpuntino.vue'
-import PanelGlicemia  from '@/components/panels/PanelGlicemia.vue'
-import PanelInsulina  from '@/components/panels/PanelInsulina.vue'
-import PanelAlcool    from '@/components/panels/PanelAlcool.vue'
-import PanelSport     from '@/components/panels/PanelSport.vue'
+import PanelPasto      from '@/components/panels/PanelPasto.vue'
+import PanelSpuntino   from '@/components/panels/PanelSpuntino.vue'
+import PanelGlicemia   from '@/components/panels/PanelGlicemia.vue'
+import PanelInsulina   from '@/components/panels/PanelInsulina.vue'
+import PanelAlcool     from '@/components/panels/PanelAlcool.vue'
+import PanelSport      from '@/components/panels/PanelSport.vue'
 import PanelCorrezione from '@/components/panels/PanelCorrezione.vue'
-import PanelAperitivi from '@/components/panels/PanelAperitivi.vue'
-import PanelProfilo   from '@/components/panels/PanelProfilo.vue'
+import PanelAperitivi  from '@/components/panels/PanelAperitivi.vue'
+import PanelProfilo    from '@/components/panels/PanelProfilo.vue'
 
 const appStore = useAppStore()
 
-const statsOpen = ref(true)
-const monthOpen = ref(false)
+const activeTab         = ref('entries')
 const showInstallBanner = ref(false)
-const ptrBar = ref(null)
+const showQuickAdd      = ref(false)
+const ptrBar            = ref(null)
+
+// Chiudi quick add quando si apre un pannello
+watch(() => appStore.openPanel, val => { if (val) showQuickAdd.value = false })
+
+function closeOverlay() {
+  if (appStore.openPanel) appStore.closePanel()
+  else showQuickAdd.value = false
+}
 
 // PWA Install
 let deferredInstallPrompt = null
@@ -161,24 +203,20 @@ async function autoSyncHealthConnect() {
     let avail
     try { avail = await HC.checkAvailability() } catch { return }
     if (!avail || avail.availability !== 'Available') return
-    // Permessi
-    const permRes = await HC.checkHealthPermissions({ permissions: [{ accessType:'read', recordType:'Steps' }] })
+    const permRes = await HC.checkHealthPermissions({ permissions: [{ accessType: 'read', recordType: 'Steps' }] })
     const granted = permRes?.results?.every(r => r.granted)
     if (!granted) return
-    // Leggi passi oggi
-    const today = new Date()
-    today.setHours(0,0,0,0)
-    const end = new Date(); end.setHours(23,59,59,999)
-    const res = await HC.readRecords({ type:'Steps', timeRangeFilter:{ operator:'between', startTime:today.toISOString(), endTime:end.toISOString() }})
+    const today = new Date(); today.setHours(0, 0, 0, 0)
+    const end = new Date(); end.setHours(23, 59, 59, 999)
+    const res = await HC.readRecords({ type: 'Steps', timeRangeFilter: { operator: 'between', startTime: today.toISOString(), endTime: end.toISOString() } })
     if (res?.records?.length) {
-      const total = res.records.reduce((s,r) => s + (r.count||r.steps||0), 0)
+      const total = res.records.reduce((s, r) => s + (r.count || r.steps || 0), 0)
       if (total > 0) useStepsStore().setDay(getDK(0), total)
     }
   } catch {}
 }
 
 onMounted(() => {
-  // PWA events
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault()
     deferredInstallPrompt = e
@@ -190,18 +228,15 @@ onMounted(() => {
     appStore.toast('✅ App installata!')
   })
 
-  // Pull to refresh
   document.addEventListener('touchstart', onTouchStart, { passive: true })
   document.addEventListener('touchmove', onTouchMove, { passive: true })
   document.addEventListener('touchend', onTouchEnd, { passive: true })
 
-  // Health Connect auto-sync
   if (window.Capacitor) {
     document.addEventListener('deviceready', () => setTimeout(autoSyncHealthConnect, 1200), false)
     setTimeout(autoSyncHealthConnect, 2500)
   }
 
-  // Service Worker
   if ('serviceWorker' in navigator && !(window.Capacitor?.isNativePlatform())) {
     navigator.serviceWorker.register('/sw.js').catch(() => {})
   }

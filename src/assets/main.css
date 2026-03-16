@@ -62,6 +62,9 @@ body.light-mode .food-row-mac-chip.fc { background: rgba(2,132,199,.08); border-
 body.light-mode .bolo-box { background: rgba(109,40,217,.07); border-color: rgba(109,40,217,.28) }
 body.light-mode .bolo-edit { border-color: rgba(109,40,217,.35) }
 body.light-mode select.fi option { background: #fff; color: #1a2433 }
+body.light-mode .bnav { background: #fff; border-color: rgba(0,0,0,.12) }
+body.light-mode .qa-sheet { background: #fff }
+body.light-mode .hg-btn { border-color: rgba(0,0,0,.12) }
 
 /* ── RESET ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent }
@@ -477,3 +480,76 @@ body { font-family: var(--sans); color: var(--txt); background: var(--bg); min-h
 .pdf-opt-icon { font-size: 1.4rem; flex-shrink: 0 }
 .pdf-opt-title { font-size: .88rem; color: var(--txt); font-weight: 600 }
 .pdf-opt-sub { font-size: .72rem; color: var(--txt2) }
+
+/* ── TAB LAYOUT ── */
+.tab-content { padding-bottom: calc(68px + env(safe-area-inset-bottom)); min-height: calc(100dvh - 56px) }
+.tab-pad { padding: 14px }
+
+/* ── BOTTOM NAVBAR ── */
+.bnav {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  height: calc(60px + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--card); border-top: 1px solid var(--bdr);
+  display: flex; align-items: center; justify-content: space-around;
+  z-index: 60;
+}
+.bnav-tab {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  background: none; border: none; cursor: pointer; padding: 6px 2px;
+  color: var(--txt2); font-family: var(--sans); transition: color .15s;
+}
+.bnav-tab.active { color: var(--g) }
+.bnav-ico { font-size: 1.3rem; line-height: 1 }
+.bnav-lbl { font-size: .58rem; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; line-height: 1 }
+.bnav-add {
+  flex: 0 0 52px; height: 52px; border-radius: 50%;
+  background: var(--g); color: #000; border: none;
+  font-size: 1.9rem; font-weight: 300; line-height: 1;
+  cursor: pointer; margin-bottom: 4px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 16px rgba(0,230,118,.4);
+  transition: transform .13s, box-shadow .13s;
+}
+.bnav-add:active { transform: scale(.9); box-shadow: 0 2px 8px rgba(0,230,118,.3) }
+
+/* ── HOME GRID (6 azioni grandi) ── */
+.home-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 12px; padding: 12px 14px 4px;
+}
+.hg-btn {
+  border-radius: 18px; padding: 28px 10px 22px;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  border: 1.5px solid; cursor: pointer; position: relative; overflow: hidden;
+  transition: transform .13s, opacity .13s;
+}
+.hg-btn:active { transform: scale(.94); opacity: .85 }
+.hg-btn::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 1px }
+.hg-ico { font-size: 1.95rem; line-height: 2 }
+.hg-lbl { font-size: 1.05rem; font-weight: 700; line-height: 1 }
+
+.hg-p     { background: rgba(0,230,118,.09);   border-color: rgba(0,230,118,.26);   color: var(--g) }
+.hg-p::after     { background: var(--g) }
+.hg-s     { background: rgba(255,171,64,.1);   border-color: rgba(255,171,64,.28);  color: var(--o) }
+.hg-s::after     { background: var(--o) }
+.hg-glic  { background: rgba(64,196,255,.11);  border-color: rgba(64,196,255,.28);  color: var(--b) }
+.hg-glic::after  { background: var(--b) }
+.hg-ins   { background: rgba(206,147,216,.11); border-color: rgba(206,147,216,.28); color: var(--p) }
+.hg-ins::after   { background: var(--p) }
+.hg-cor   { background: rgba(255,171,64,.08);  border-color: rgba(255,171,64,.22);  color: var(--o) }
+.hg-cor::after   { background: var(--o) }
+.hg-aperi { background: rgba(128,203,196,.1);  border-color: rgba(128,203,196,.28); color: var(--nut) }
+.hg-aperi::after { background: var(--nut) }
+
+/* ── QUICK ADD SHEET ── */
+.qa-sheet {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--bg2); border: 1px solid var(--bdr2); border-radius: 20px 20px 0 0;
+  padding: 0 0 calc(16px + env(safe-area-inset-bottom));
+  transform: translateY(100%); transition: transform .32s cubic-bezier(.32,.72,0,1);
+  z-index: 150;
+}
+.qa-sheet.on { transform: translateY(0) }
+.qa-handle { width: 36px; height: 4px; background: var(--bdr2); border-radius: 2px; margin: 12px auto 0 }
+.qa-title { text-align: center; font-size: .85rem; font-weight: 700; color: var(--txt2); letter-spacing: .4px; text-transform: uppercase; padding: 10px 0 4px }
