@@ -4,7 +4,7 @@
 
     <div class="fr">
       <span class="fl">Tipo</span>
-      <SegmentControl v-model="form.insulinSubtype" :options="subtypeOpts" color-class="p" />
+      <SegmentControl :modelValue="form.insulinSubtype" @update:modelValue="onSubtypeChange" :options="subtypeOpts" color-class="p" />
     </div>
 
     <div class="fr">
@@ -41,6 +41,8 @@
 import { ref, watch, nextTick } from 'vue'
 import { useAppStore } from '@/stores/app.js'
 import { useEntriesStore, useConfigStore } from '@/stores/index.js'
+
+
 import PanelBase from './PanelBase.vue'
 import SegmentControl from '@/components/shared/SegmentControl.vue'
 import TimeRow from '@/components/shared/TimeRow.vue'
@@ -80,6 +82,16 @@ watch(() => app.openPanel, (p) => {
     nextTick(() => inputRef.value?.focus())
   }
 })
+
+function onSubtypeChange(val) {
+  form.value.insulinSubtype = val
+  const cfg = cfgStore.cfg
+  if (val === 'Basale') {
+    form.value.insulinType = cfg.insBasale || 'Lantus'
+  } else {
+    form.value.insulinType = cfg.insRapida || 'Humalog'
+  }
+}
 
 function save() {
   if (!form.value.units || form.value.units <= 0) { app.toast('Inserisci le unità'); return }

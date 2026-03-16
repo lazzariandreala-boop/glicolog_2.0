@@ -32,7 +32,7 @@
     </div>
 
     <!-- Bolo suggerito -->
-    <div class="bolo-box" :class="{ on: boloUnits > 0 }">
+    <div class="bolo-box o" :class="{ on: boloUnits > 0 }">
       <div class="bolo-ico">💉</div>
       <div class="bolo-body">
         <div class="bolo-val">{{ boloUnits.toFixed(1) }}U</div>

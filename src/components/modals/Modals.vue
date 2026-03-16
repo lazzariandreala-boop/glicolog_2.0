@@ -34,20 +34,35 @@
   <div class="pdf-modal-bg" :class="{ on: app.showPdfModal }" @click.self="app.showPdfModal = false">
     <div class="pdf-modal">
       <div class="pdf-modal-title">📄 Esporta dati</div>
-      <button class="pdf-opt-btn" @click="exportJson">
-        <span class="pdf-opt-icon">💾</span>
-        <div>
-          <div class="pdf-opt-title">Scarica JSON</div>
-          <div class="pdf-opt-sub">Backup completo di tutte le voci</div>
+
+      <!-- Report PDF -->
+      <div style="margin-bottom:12px">
+        <div style="font-size:.72rem;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">📊 Report glicemico</div>
+        <div style="display:flex;gap:6px;margin-bottom:8px">
+          <button v-for="d in [7,14,30,90]" :key="d"
+            :style="{ flex:1, background: pdfDays===d ? 'rgba(0,230,118,.12)' : 'var(--card)', border: pdfDays===d ? '1px solid var(--g)' : '1px solid var(--bdr)', borderRadius:'8px', color: pdfDays===d ? 'var(--g)' : 'var(--txt2)', fontFamily:'var(--sans)', fontSize:'.78rem', fontWeight: pdfDays===d ? '700' : '400', padding:'8px 4px', cursor:'pointer' }"
+            @click="pdfDays = d">{{ d }}g</button>
         </div>
-      </button>
-      <button class="pdf-opt-btn" @click="printView">
-        <span class="pdf-opt-icon">🖨️</span>
-        <div>
-          <div class="pdf-opt-title">Stampa / Salva PDF</div>
-          <div class="pdf-opt-sub">Apre la finestra di stampa del browser</div>
-        </div>
-      </button>
+        <button class="pdf-opt-btn" @click="doExportPdf">
+          <span class="pdf-opt-icon">📊</span>
+          <div>
+            <div class="pdf-opt-title">Genera Report PDF</div>
+            <div class="pdf-opt-sub">Ultimi {{ pdfDays }} giorni · statistiche, grafico, dettaglio giornaliero</div>
+          </div>
+        </button>
+      </div>
+
+      <div style="border-top:1px solid var(--bdr);padding-top:12px">
+        <div style="font-size:.72rem;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">💾 Backup</div>
+        <button class="pdf-opt-btn" @click="exportJson">
+          <span class="pdf-opt-icon">💾</span>
+          <div>
+            <div class="pdf-opt-title">Scarica JSON</div>
+            <div class="pdf-opt-sub">Backup completo di tutte le voci</div>
+          </div>
+        </button>
+      </div>
+
       <button class="bdel" style="margin-top:8px" @click="app.showPdfModal = false">Chiudi</button>
     </div>
   </div>
@@ -103,8 +118,9 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useAppStore } from '@/stores/app.js'
-import { useEntriesStore, useStepsStore } from '@/stores/index.js'
+import { useEntriesStore, useStepsStore, useConfigStore } from '@/stores/index.js'
 import { getDK } from '@/data/constants.js'
+import { exportPdfReport } from '@/utils/pdfExport.js'
 
 const app = useAppStore()
 const entriesStore = useEntriesStore()
@@ -142,6 +158,13 @@ function saveSteps() {
 }
 
 // PDF / Export
+const pdfDays = ref(14)
+
+function doExportPdf() {
+  app.showPdfModal = false
+  exportPdfReport(entriesStore, useConfigStore(), pdfDays.value)
+}
+
 function exportJson() {
   const data = {
     glicolog_v2: JSON.parse(localStorage.getItem('glicolog_v2') || '[]'),
@@ -159,11 +182,6 @@ function exportJson() {
   URL.revokeObjectURL(url)
   app.showPdfModal = false
   app.toast('💾 Backup scaricato')
-}
-
-function printView() {
-  app.showPdfModal = false
-  setTimeout(() => window.print(), 200)
 }
 
 // Water

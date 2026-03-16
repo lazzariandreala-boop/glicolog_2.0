@@ -45,10 +45,18 @@
             <button v-for="p in STORICO_PERIODS" :key="p.v" class="gchart-tab" :class="{ on: storicoDays === p.v }" @click="storicoDays = p.v">{{ p.l }}</button>
           </div>
         </div>
+        <!-- Slot averages for storico period -->
+        <div class="gchart-avgs" style="margin-bottom:10px">
+          <div v-for="m in storicoSlotAvgs" :key="m.label" class="gchart-avg-box">
+            <span class="gchart-avg-val" :style="{ color: m.color }">{{ m.val ?? '—' }}</span>
+            <span class="gchart-avg-lbl">{{ m.label }}</span>
+            <span class="gchart-avg-sub">{{ m.sub }}</span>
+          </div>
+        </div>
         <div ref="storicoWrapEl">
           <canvas ref="storicoCanvasEl" class="gchart-canvas"></canvas>
         </div>
-        <p class="storico-sub">Ultimi {{ storicoDays }} giorni ({{ storicoPoints.length }} valori)</p>
+        <p class="storico-sub">— Media · · · Giorni singoli · Ultimi {{ storicoDays }} giorni ({{ storicoPoints.length }} valori)</p>
         <div class="storico-stats">
           <div class="storico-stat">
             <span class="storico-stat-v" :style="{ color: avgColor(storicoStats.avg) }">{{ storicoStats.avg ?? '—' }}</span>
@@ -163,6 +171,30 @@ const storicoStats = computed(() => {
   const highCount = vals.filter(v => v > cfgMax.value).length
   const lowCount  = vals.filter(v => v < cfgMin.value).length
   return { avg, inRange, max: Math.max(...vals), min: Math.min(...vals), highCount, lowCount }
+})
+
+const storicoSlotAvgs = computed(() => {
+  const mat = [], pom = [], ser = [], not = []
+  for (let i = -(storicoDays.value - 1); i <= 0; i++) {
+    entriesStore.forDay(getDK(i)).forEach(e => {
+      if (e.glic > 0) {
+        const d = new Date(e.ts)
+        const mins = d.getHours() * 60 + d.getMinutes()
+        if      (mins >= 7*60 && mins < 12*60+30) mat.push(e.glic)
+        else if (mins >= 12*60+30 && mins < 18*60) pom.push(e.glic)
+        else if (mins >= 18*60 && mins < 22*60)    ser.push(e.glic)
+        else                                        not.push(e.glic)
+      }
+    })
+  }
+  const avg = arr => arr.length ? Math.round(arr.reduce((s, v) => s + v, 0) / arr.length) : null
+  const color = v => !v ? 'var(--txt2)' : v < cfgMin.value ? 'var(--r)' : v > cfgMax.value ? 'var(--o)' : 'var(--g)'
+  return [
+    { label: 'MATTINA',    sub: '7–12:30', val: avg(mat), color: color(avg(mat)) },
+    { label: 'POMERIGGIO', sub: '12:30–18', val: avg(pom), color: color(avg(pom)) },
+    { label: 'SERA',       sub: '18–22',   val: avg(ser), color: color(avg(ser)) },
+    { label: 'NOTTE',      sub: '22–7',    val: avg(not), color: color(avg(not)) },
+  ]
 })
 
 function avgColor(v) {
@@ -301,15 +333,146 @@ function drawChart(canvasRef, wrapRef, pts, todayMode, numDaysParam = 14) {
   pts.forEach(pt => {
     const x = toX(pt.ts), y = toY(pt.v)
     const col = pt.v < tMin ? C.r : pt.v > tMax ? C.o : C.g
-    ctx.beginPath(); ctx.arc(x, y, 3.5, 0, Math.PI * 2)
-    ctx.fillStyle = C.bg; ctx.fill()
-    ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.stroke()
+    ctx.beginPath(); ctx.arc(x, y, 2.5, 0, Math.PI * 2)
+    ctx.fillStyle = col; ctx.fill()
     if (pt.v < tMin || pt.v > 200 || (pt.v > tMax && pts.length <= 20)) {
       ctx.fillStyle = col; ctx.font = 'bold 9px DM Mono, monospace'
       ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'
       ctx.fillText(pt.v, x, y - 6)
     }
   })
+}
+
+function drawStoricoAgp() {
+  const canvas = storicoCanvasEl.value
+  const wrap   = storicoWrapEl.value
+  if (!canvas || !wrap) return
+  const W = wrap.clientWidth || 300
+  if (!W) return
+  const H = 200
+  const dpr = window.devicePixelRatio || 1
+  canvas.width  = W * dpr
+  canvas.height = H * dpr
+  canvas.style.width  = W + 'px'
+  canvas.style.height = H + 'px'
+  const ctx = canvas.getContext('2d')
+  ctx.scale(dpr, dpr)
+
+  const tMin = cfgMin.value
+  const tMax = cfgMax.value
+  const isLight = document.body.classList.contains('light-mode')
+  const C = {
+    bg:   isLight ? '#ffffff' : '#111620',
+    grid: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)',
+    txt:  isLight ? '#556070' : '#7a8899',
+    g:    isLight ? '#059669' : '#00e676',
+    r:    isLight ? '#dc2626' : '#ff5252',
+    o:    isLight ? '#c2810a' : '#ffab40',
+  }
+
+  // Collect per-day points (normalized to hour-of-day)
+  const days = storicoDays.value
+  const byDay = {}
+  for (let i = -(days - 1); i <= 0; i++) {
+    byDay[i] = entriesStore.forDay(getDK(i)).filter(e => e.glic > 0).map(e => {
+      const d = new Date(e.ts)
+      return { h: d.getHours() + d.getMinutes() / 60, v: e.glic }
+    }).sort((a, b) => a.h - b.h)
+  }
+  const allPts = Object.values(byDay).flat()
+
+  // Hour-bin averages
+  const binGroups = {}
+  allPts.forEach(p => {
+    const bin = Math.floor(p.h)
+    if (!binGroups[bin]) binGroups[bin] = []
+    binGroups[bin].push(p.v)
+  })
+  const avgLine = []
+  for (let h = 0; h < 24; h++) {
+    if (binGroups[h]?.length) {
+      avgLine.push({ h: h + 0.5, v: Math.round(binGroups[h].reduce((s, v) => s + v, 0) / binGroups[h].length) })
+    }
+  }
+
+  const PL = 42, PR = 10, PT = 14, PB = 28
+  const plotW = W - PL - PR
+  const plotH = H - PT - PB
+
+  const allVals = allPts.map(p => p.v)
+  const yMin = allVals.length ? Math.floor(Math.min(...allVals, tMin - 10, 50) / 20) * 20 : 40
+  const yMax = allVals.length ? Math.ceil(Math.max(...allVals, tMax + 20, 200) / 20) * 20 : 300
+
+  const toX = h   => PL + (h / 24) * plotW
+  const toY = val => PT + (1 - (val - yMin) / (yMax - yMin)) * plotH
+
+  // Background
+  ctx.clearRect(0, 0, W, H)
+  ctx.fillStyle = C.bg
+  if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(0, 0, W, H, 12); ctx.fill() }
+  else ctx.fillRect(0, 0, W, H)
+
+  // Color zones
+  const za = isLight ? 0.06 : 0.08
+  ctx.fillStyle = `rgba(255,82,82,${za})`; ctx.fillRect(PL, toY(tMin), plotW, toY(yMin) - toY(tMin))
+  ctx.fillStyle = `rgba(0,230,118,${za})`; ctx.fillRect(PL, toY(tMax), plotW, toY(tMin) - toY(tMax))
+  if (200 > tMax) { ctx.fillStyle = `rgba(255,171,64,${za})`; ctx.fillRect(PL, toY(200), plotW, toY(tMax) - toY(200)) }
+  if (yMax > 200) { ctx.fillStyle = `rgba(255,82,82,${za * 1.3})`; ctx.fillRect(PL, toY(yMax), plotW, toY(200) - toY(yMax)) }
+
+  // Target lines
+  ctx.setLineDash([3, 4]); ctx.strokeStyle = C.g; ctx.globalAlpha = 0.4; ctx.lineWidth = 1
+  ;[tMin, tMax].forEach(v => { ctx.beginPath(); ctx.moveTo(PL, toY(v)); ctx.lineTo(PL + plotW, toY(v)); ctx.stroke() })
+  ctx.setLineDash([]); ctx.globalAlpha = 1
+
+  // Grid + Y labels
+  ctx.font = '10px DM Mono, monospace'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'
+  const gridStep = (yMax - yMin) <= 160 ? 40 : 50
+  for (let v = yMin; v <= yMax; v += gridStep) {
+    const y = toY(v)
+    ctx.strokeStyle = C.grid; ctx.lineWidth = 1
+    ctx.beginPath(); ctx.moveTo(PL, y); ctx.lineTo(PL + plotW, y); ctx.stroke()
+    ctx.fillStyle = C.txt; ctx.fillText(v, PL - 4, y)
+  }
+
+  // X axis
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.font = '9px DM Sans, sans-serif'; ctx.fillStyle = C.txt
+  ;[0, 6, 12, 18, 23].forEach(h => { ctx.fillText(h + 'h', toX(h), H - 4) })
+
+  if (!allPts.length) return
+
+  // Individual day lines (faint dotted)
+  Object.values(byDay).forEach(pts => {
+    if (!pts.length) return
+    ctx.globalAlpha = 0.22
+    ctx.strokeStyle = isLight ? 'rgba(2,132,199,0.8)' : 'rgba(64,196,255,0.9)'
+    ctx.lineWidth = 1; ctx.setLineDash([2, 3]); ctx.lineJoin = 'round'
+    if (pts.length >= 2) {
+      ctx.beginPath()
+      pts.forEach((p, i) => { const x = toX(p.h), y = toY(p.v); i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y) })
+      ctx.stroke()
+    }
+    ctx.setLineDash([])
+    pts.forEach(p => {
+      ctx.beginPath(); ctx.arc(toX(p.h), toY(p.v), 2, 0, Math.PI * 2)
+      ctx.fillStyle = isLight ? '#0284c7' : '#40c4ff'; ctx.fill()
+    })
+    ctx.globalAlpha = 1
+  })
+
+  // Average line (solid)
+  if (avgLine.length >= 2) {
+    ctx.strokeStyle = isLight ? 'rgba(2,132,199,0.85)' : 'rgba(64,196,255,0.9)'
+    ctx.lineWidth = 2; ctx.lineJoin = 'round'; ctx.globalAlpha = 1
+    ctx.beginPath()
+    avgLine.forEach((p, i) => { const x = toX(p.h), y = toY(p.v); i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y) })
+    ctx.stroke()
+    // Average dots colored
+    avgLine.forEach(p => {
+      const col = p.v < tMin ? C.r : p.v > tMax ? C.o : C.g
+      ctx.beginPath(); ctx.arc(toX(p.h), toY(p.v), 3, 0, Math.PI * 2)
+      ctx.fillStyle = col; ctx.fill()
+    })
+  }
 }
 
 function draw() {
@@ -326,9 +489,9 @@ onMounted(() => {
 onUnmounted(() => ro?.disconnect())
 
 watch([points, () => configStore.cfg.targetMin, () => configStore.cfg.targetMax], () => nextTick(draw))
-watch([storicoPoints, showStorico, storicoDays], () => { if (showStorico.value) nextTick(() => drawChart(storicoCanvasEl, storicoWrapEl, storicoPoints.value, false, storicoDays.value)) })
+watch([storicoPoints, showStorico, storicoDays], () => { if (showStorico.value) nextTick(drawStoricoAgp) })
 
-const themeObserver = typeof MutationObserver !== 'undefined' ? new MutationObserver(() => { nextTick(draw); if (showStorico.value) nextTick(() => drawChart(storicoCanvasEl, storicoWrapEl, storicoPoints.value, false, storicoDays.value)) }) : null
+const themeObserver = typeof MutationObserver !== 'undefined' ? new MutationObserver(() => { nextTick(draw); if (showStorico.value) nextTick(drawStoricoAgp) }) : null
 onMounted(() => themeObserver?.observe(document.body, { attributes: true, attributeFilter: ['class'] }))
 onUnmounted(() => themeObserver?.disconnect())
 </script>

@@ -36,10 +36,10 @@
       </div>
     </div>
 
-    <!-- Glicemia pre-pasto -->
+    <!-- Glicemia -->
     <div class="fr">
-      <span class="fl">💊 Glicemia pre-pasto (mg/dL)</span>
-      <input class="fi" type="number" inputmode="numeric" v-model.number="form.glic" placeholder="mg/dL (opzionale)" />
+      <span class="fl">💉 Glicemia (mg/dL)</span>
+      <input class="fi big" type="number" inputmode="numeric" v-model.number="form.glic" placeholder="—" />
     </div>
 
     <!-- Direzionalità -->
@@ -49,7 +49,7 @@
     </div>
 
     <!-- Bolo suggerito -->
-    <div class="bolo-box" :class="{ on: boloUnits > 0 }">
+    <div class="bolo-box g" :class="{ on: boloUnits > 0 }">
       <div class="bolo-ico">💉</div>
       <div class="bolo-body">
         <div class="bolo-val">{{ boloUnits.toFixed(1) }}U</div>

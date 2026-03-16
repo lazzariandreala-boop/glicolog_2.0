@@ -46,6 +46,9 @@
       </div>
     </div>
 
+    <!-- Mini chart mensile -->
+    <canvas ref="monthChartEl" style="display:block;width:100%;margin-top:10px;border-radius:8px"></canvas>
+
     <!-- Legenda -->
     <div class="gcal-leg">
       <span style="color:var(--r)">↓ bassa</span>
@@ -56,7 +59,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useEntriesStore, useConfigStore } from '@/stores/index.js'
 import { useAppStore } from '@/stores/app.js'
 import { p2, MI } from '@/data/constants.js'
@@ -64,6 +67,8 @@ import { p2, MI } from '@/data/constants.js'
 const entriesStore = useEntriesStore()
 const configStore  = useConfigStore()
 const appStore     = useAppStore()
+
+const monthChartEl = ref(null)
 
 const DOWS = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom']
 
@@ -190,6 +195,96 @@ function goToDay(day) {
   if (diff > 0) return  // non navigare nel futuro
   appStore.dayOffset = diff
 }
+
+function drawMonthChart() {
+  const canvas = monthChartEl.value
+  if (!canvas) return
+  const W = canvas.parentElement?.clientWidth || 300
+  if (!W) return
+  const H = 70
+  const dpr = window.devicePixelRatio || 1
+  canvas.width  = W * dpr
+  canvas.height = H * dpr
+  canvas.style.width  = W + 'px'
+  canvas.style.height = H + 'px'
+  const ctx = canvas.getContext('2d')
+  ctx.scale(dpr, dpr)
+
+  const tMin = configStore.cfg.targetMin || 80
+  const tMax = configStore.cfg.targetMax || 180
+  const isLight = document.body.classList.contains('light-mode')
+
+  // Collect all readings in this month
+  const pts = []
+  const daysTotal = daysInMonth.value
+  for (let day = 1; day <= daysTotal; day++) {
+    // get x as fractional day position
+    const xFrac = (day - 0.5) / daysTotal
+    const entries = entriesStore.entries.filter(e => {
+      if (!e.glic) return false
+      const d = new Date(e.ts)
+      return d.getFullYear() === viewYear.value && d.getMonth() === viewMonth.value && d.getDate() === day
+    })
+    entries.forEach(e => pts.push({ x: xFrac, v: e.glic }))
+  }
+
+  const PL = 32, PR = 8, PT = 6, PB = 14
+  const plotW = W - PL - PR
+  const plotH = H - PT - PB
+
+  const allVals = pts.map(p => p.v)
+  const yMin = allVals.length ? Math.floor(Math.min(...allVals, tMin - 10) / 20) * 20 : 40
+  const yMax = allVals.length ? Math.ceil(Math.max(...allVals, tMax + 10) / 20) * 20 : 280
+
+  const toX = f   => PL + f * plotW
+  const toY = val => PT + (1 - (val - yMin) / (yMax - yMin)) * plotH
+
+  // Background
+  ctx.clearRect(0, 0, W, H)
+  ctx.fillStyle = isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)'
+  ctx.fillRect(0, 0, W, H)
+
+  // Range zone
+  ctx.fillStyle = isLight ? 'rgba(34,197,94,0.07)' : 'rgba(0,230,118,0.07)'
+  ctx.fillRect(PL, toY(tMax), plotW, toY(tMin) - toY(tMax))
+
+  // Target lines
+  ctx.setLineDash([2, 3]); ctx.strokeStyle = isLight ? 'rgba(34,197,94,0.4)' : 'rgba(0,230,118,0.35)'; ctx.lineWidth = 1; ctx.globalAlpha = 1
+  ;[tMin, tMax].forEach(v => { ctx.beginPath(); ctx.moveTo(PL, toY(v)); ctx.lineTo(PL + plotW, toY(v)); ctx.stroke() })
+  ctx.setLineDash([])
+
+  // Y labels
+  ctx.font = '9px DM Mono, monospace'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillStyle = isLight ? '#8090a0' : '#7a8899'
+  ;[tMin, tMax].forEach(v => { ctx.fillText(v, PL - 3, toY(v)) })
+
+  // X labels (day numbers, sparse)
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.font = '8px DM Sans, sans-serif'; ctx.fillStyle = isLight ? '#8090a0' : '#7a8899'
+  const labelDays = [1, 5, 10, 15, 20, 25, daysTotal]
+  labelDays.forEach(day => {
+    const xFrac = (day - 0.5) / daysTotal
+    ctx.fillText(day, toX(xFrac), H - PB + 3)
+  })
+
+  if (!pts.length) return
+
+  // Connect dots with a thin line
+  const sorted = [...pts].sort((a, b) => a.x - b.x)
+  ctx.strokeStyle = isLight ? 'rgba(2,132,199,0.35)' : 'rgba(64,196,255,0.3)'
+  ctx.lineWidth = 1; ctx.lineJoin = 'round'
+  ctx.beginPath()
+  sorted.forEach((p, i) => { const x = toX(p.x), y = toY(p.v); i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y) })
+  ctx.stroke()
+
+  // Dots
+  pts.forEach(p => {
+    const col = p.v < tMin ? (isLight ? '#dc2626' : '#ff5252') : p.v > tMax ? (isLight ? '#c2810a' : '#ffab40') : (isLight ? '#059669' : '#00e676')
+    ctx.beginPath(); ctx.arc(toX(p.x), toY(p.v), 2, 0, Math.PI * 2)
+    ctx.fillStyle = col; ctx.fill()
+  })
+}
+
+onMounted(() => nextTick(drawMonthChart))
+watch([statusCache, viewMonth, viewYear], () => nextTick(drawMonthChart))
 </script>
 
 <style scoped>

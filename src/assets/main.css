@@ -198,7 +198,10 @@ body { font-family: var(--sans); color: var(--txt); background: var(--bg); min-h
 .tlb { flex: 1; min-width: 0 }
 .tlt { font-size: .98rem; font-weight: 600; color: var(--txt); margin-bottom: 2px }
 .tls { font-size: .78rem; color: var(--txt2); line-height: 1.5 }
-.tlv { font-family: var(--mono); font-size: 1.15rem; font-weight: 500; flex-shrink: 0 }
+.tlv { font-family: var(--mono); font-size: 1.15rem; font-weight: 500; flex-shrink: 0; text-align: right }
+.tlv-line { line-height: 1.3; font-size: 1rem; font-weight: 600 }
+.tlv-unit { font-size: .7rem; font-weight: 400; color: var(--txt2) }
+.tlv-bolo { font-size: .82rem; color: var(--p); margin-top: 2px }
 .tla { color: var(--txt2); font-size: .72rem; margin-top: 6px; display: flex; gap: 8px; align-items: center }
 .teb { background: none; border: 1px solid var(--bdr); border-radius: 6px; color: var(--txt2); font-size: .72rem; padding: 3px 8px; cursor: pointer; font-family: var(--sans); transition: all .12s }
 .teb:active { background: var(--card2) }
@@ -334,6 +337,16 @@ body { font-family: var(--sans); color: var(--txt); background: var(--bg); min-h
 .bolo-lbl { font-size: .74rem; color: var(--txt2); margin-top: 3px; line-height: 1.4 }
 .bolo-edit { background: var(--card2); border: 2px solid rgba(206,147,216,.5); border-radius: 12px; padding: 4px 8px; min-width: 64px; text-align: center; flex-shrink: 0 }
 .bolo-edit input { background: transparent; border: none; outline: none; font-family: var(--mono); font-size: 1.45rem; font-weight: 700; color: var(--p); width: 60px; text-align: center }
+/* Bolo box colore verde (pasto) */
+.bolo-box.g { background: rgba(0,230,118,.07); border-color: rgba(0,230,118,.28) }
+.bolo-box.g .bolo-val { color: var(--g) }
+.bolo-box.g .bolo-edit { border-color: rgba(0,230,118,.4) }
+.bolo-box.g .bolo-edit input { color: var(--g) }
+/* Bolo box colore arancione (spuntino) */
+.bolo-box.o { background: rgba(255,171,64,.07); border-color: rgba(255,171,64,.28) }
+.bolo-box.o .bolo-val { color: var(--o) }
+.bolo-box.o .bolo-edit { border-color: rgba(255,171,64,.4) }
+.bolo-box.o .bolo-edit input { color: var(--o) }
 
 /* ── AUTOCOMPLETE ── */
 .ac { display: none; position: absolute; left: 0; right: 0; top: calc(100% + 4px); background: var(--card); border: 1px solid var(--bdr2); border-radius: 12px; box-shadow: 0 8px 28px rgba(0,0,0,.45); z-index: 300; max-height: 260px; overflow-y: auto }

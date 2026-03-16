@@ -28,7 +28,18 @@
               <button class="teb-del" @click="del(entry)">🗑️</button>
             </div>
           </div>
-          <div class="tlv" :style="{ color: entryColor(entry) }">{{ entryValue(entry) }}</div>
+          <div class="tlv">
+            <template v-if="(entry.type === 'pasto' || entry.type === 'spuntino') && (entry.glic > 0 || entry.bolo > 0)">
+              <div v-if="entry.glic > 0" class="tlv-line" :style="{ color: glicColor(entry.glic) }">{{ entry.glic }}<span class="tlv-unit"> mg/dL</span><span v-if="entry.trend"> {{ entry.trend }}</span></div>
+              <div v-if="entry.bolo > 0" class="tlv-line tlv-bolo">{{ entry.bolo }}U 💉</div>
+            </template>
+            <template v-else-if="entry.type === 'glicemia' && (entry.glic || entry.value)">
+              <div class="tlv-line" :style="{ color: glicColor(entry.glic || entry.value) }">{{ entry.glic || entry.value }}<span class="tlv-unit"> mg/dL</span><span v-if="entry.trend"> {{ entry.trend }}</span></div>
+            </template>
+            <template v-else>
+              <span :style="{ color: entryColor(entry) }">{{ entryValue(entry) }}</span>
+            </template>
+          </div>
         </div>
         <div class="tlc-del-bg" @click="del(entry)">🗑️</div>
       </div>
@@ -103,10 +114,8 @@ function entrySubtitle(e) {
     }
     if (e.carbs > 0) parts.push(`${Math.round(e.carbs)}g C`)
     if (e.kcal > 0) parts.push(`${Math.round(e.kcal)} kcal`)
-    if (e.bolo > 0) parts.push(`💉 ${e.bolo}U`)
   }
   if (e.type === 'glicemia') {
-    if (e.trend) parts.push('Trend: ' + e.trend)
     if (e.note) parts.push(e.note)
   }
   if (e.type === 'insulina') {
@@ -131,7 +140,7 @@ function entryValue(e) {
   if (e.type === 'sport') return `${e.duration}'`
   if (e.type === 'correzione') return `${Math.round(e.carbs)}g C`
   if (e.type === 'acqua') return `${e.ml}ml`
-  if ((e.type === 'pasto' || e.type === 'spuntino') && e.glic > 0) return `${e.glic} mg/dL ${e.trend || ''}`
+  if (e.type === 'pasto' || e.type === 'spuntino') return ''
   return ''
 }
 
