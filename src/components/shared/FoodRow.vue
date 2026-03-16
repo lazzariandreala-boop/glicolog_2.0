@@ -19,7 +19,8 @@
           :key="r.name"
           class="aci"
           @mousedown.prevent="pickResult(r)"
-          @touchstart.prevent="pickResult(r)"
+          @touchstart.passive="e => { touchStartY = e.touches[0].clientY }"
+          @touchend.prevent="e => { if (Math.abs(e.changedTouches[0].clientY - touchStartY) < 10) pickResult(r) }"
         >
           <div class="aci-name-full">{{ r.name }}<span v-if="r.online" class="aci-src">web</span></div>
           <div v-if="r.mac" class="aci-mac-row">
@@ -100,6 +101,7 @@ const acResults = ref([])
 const searching = ref(false)
 const scannerOpen = ref(false)
 let acTimer = null
+let touchStartY = 0
 
 const localMacros = computed(() => {
   const g = localGrams.value || 0
@@ -116,7 +118,8 @@ function onNameInput() {
   emit('update:name', localName.value)
   clearTimeout(acTimer)
   const q = localName.value.trim()
-  if (q.length < 2) { acResults.value = []; return }
+  if (q.length < 2) { acResults.value = []; showAc.value = false; return }
+  showAc.value = true
   acResults.value = dbStore.search(q, 6)
   // Auto ricerca online se pochi risultati locali
   if (acResults.value.length < 3) {

@@ -20,8 +20,8 @@
         <span class="gcal-num">{{ day }}</span>
         <span v-if="dayStatus(day).avg != null" class="gcal-avg" :class="avgColorClass(day)">{{ dayStatus(day).avg }}</span>
         <div class="gcal-badges" v-if="dayStatus(day).lowCount || dayStatus(day).highCount">
-          <span v-if="dayStatus(day).lowCount"  class="gcal-badge gcal-badge-r">↓{{ dayStatus(day).lowCount }}</span>
-          <span v-if="dayStatus(day).highCount" class="gcal-badge gcal-badge-o">↑{{ dayStatus(day).highCount }}</span>
+          <span v-if="dayStatus(day).lowCount"  class="gcal-badge gcal-badge-r">{{ dayStatus(day).lowCount }}</span>
+          <span v-if="dayStatus(day).highCount" class="gcal-badge gcal-badge-o">{{ dayStatus(day).highCount }}</span>
         </div>
       </div>
     </div>
@@ -199,13 +199,12 @@ function goToDay(day) {
 function drawMonthChart() {
   const canvas = monthChartEl.value
   if (!canvas) return
-  const W = canvas.getBoundingClientRect().width || canvas.parentElement?.clientWidth || 300
+  const W = canvas.offsetWidth || canvas.getBoundingClientRect().width || 300
   if (!W) return
   const H = 70
   const dpr = window.devicePixelRatio || 1
   canvas.width  = W * dpr
   canvas.height = H * dpr
-  canvas.style.width  = W + 'px'
   canvas.style.height = H + 'px'
   const ctx = canvas.getContext('2d')
   ctx.scale(dpr, dpr)
