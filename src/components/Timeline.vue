@@ -3,7 +3,7 @@
     <div v-if="groups.length === 0" class="tl-empty">
       <div style="font-size:2rem;margin-bottom:8px">📋</div>
       Nessuna voce registrata per questo giorno.<br>
-      <span style="color:var(--g)">Usa i pulsanti sopra</span> per aggiungere qualcosa.
+      <!-- <span style="color:var(--g)">Usa i pulsanti sopra</span> per aggiungere qualcosa. -->
     </div>
 
     <template v-for="group in groups" :key="group.label">
@@ -17,7 +17,7 @@
         @touchend.passive="onTouchEnd(entry.id)"
         :class="{ swiped: swiped === entry.id }"
       >
-        <div class="tlc">
+        <div class="tlc" :class="'tlc-' + entry.type">
           <div class="tli">{{ entryIcon(entry) }}</div>
           <div class="tlb">
             <div class="tlt">{{ entryTitle(entry) }}</div>
