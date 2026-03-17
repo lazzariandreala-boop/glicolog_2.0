@@ -734,6 +734,9 @@ body.light-mode .qa-sheet { background: rgba(255,255,255,.97) }
     transform: translateX(-50%) translateY(0) scale(1);
     opacity: 1;
   }
+  .panel.panel-profilo {
+    width: min(780px, calc(100vw - 260px));
+  }
   .ph { cursor: default; pointer-events: none }
 
   /* ── Quick add sheet come modale centrata ── */

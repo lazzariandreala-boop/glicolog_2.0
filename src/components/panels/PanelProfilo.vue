@@ -1,109 +1,124 @@
 <template>
-  <PanelBase :visible="visible">
+  <PanelBase :visible="visible" panel-class="panel-profilo">
     <div class="pf-title">⚙️ Profilo personale</div>
     <p class="pf-subtitle">I tuoi parametri per suggerimenti e target nutrizionali. Aggiornali se cambia il peso o le dosi.</p>
 
-    <div class="pdiv">📏 Dati corporei</div>
+    <!-- Layout 2 colonne su desktop -->
+    <div class="pf-cols">
 
-    <div class="pf-grid2">
-      <div class="pf-field">
-        <span class="pf-label">ETÀ</span>
-        <input class="fi pf-input" type="number" inputmode="numeric" v-model.number="form.age" placeholder="es. 32" />
+      <!-- Colonna sinistra: dati corporei -->
+      <div class="pf-col">
+        <div class="pdiv">📏 Dati corporei</div>
+        <div class="pf-grid2">
+          <div class="pf-field">
+            <span class="pf-label">ETÀ</span>
+            <input class="fi pf-input" type="number" inputmode="numeric" v-model.number="form.age" placeholder="es. 32" />
+          </div>
+          <div class="pf-field">
+            <span class="pf-label">PESO (KG)</span>
+            <input class="fi pf-input" type="number" inputmode="decimal" v-model.number="form.weight" placeholder="es. 80" />
+          </div>
+          <div class="pf-field">
+            <span class="pf-label">ALTEZZA (CM)</span>
+            <input class="fi pf-input" type="number" inputmode="numeric" v-model.number="form.height" placeholder="es. 174" />
+          </div>
+          <div class="pf-field">
+            <span class="pf-label">SESSO</span>
+            <SegmentControl v-model="form.sex" :options="[{value:'M',label:'♂ M'},{value:'F',label:'♀ F'}]" />
+          </div>
+        </div>
+
+        <div class="pf-field">
+          <span class="pf-label">ATTIVITÀ FISICA</span>
+          <SegmentControl v-model="form.activity" :options="activityOpts" />
+        </div>
+
+        <div class="pf-field">
+          <span class="pf-label">OBIETTIVO</span>
+          <SegmentControl v-model="form.goal" :options="goalOpts" />
+        </div>
+
+        <!-- TDEE calcolato (su desktop nella colonna sinistra) -->
+        <div v-if="tdee" class="pf-tdee">
+          <div class="pf-tdee-title">📊 TDEE calcolato</div>
+          <div class="pf-tdee-val">{{ tdee }} kcal/giorno (con attività)</div>
+        </div>
       </div>
-      <div class="pf-field">
-        <span class="pf-label">PESO (KG)</span>
-        <input class="fi pf-input" type="number" inputmode="decimal" v-model.number="form.weight" placeholder="es. 80" />
+
+      <!-- Colonna destra: parametri glicemici + altro -->
+      <div class="pf-col">
+        <div class="pdiv">🩸 Parametri glicemici</div>
+        <div class="pf-grid2">
+          <div class="pf-field">
+            <span class="pf-label">TARGET MIN</span>
+            <input class="fi pf-input" type="number" inputmode="numeric" v-model.number="form.targetMin" placeholder="es. 80" />
+          </div>
+          <div class="pf-field">
+            <span class="pf-label">TARGET MAX</span>
+            <input class="fi pf-input" type="number" inputmode="numeric" v-model.number="form.targetMax" placeholder="es. 180" />
+          </div>
+          <div class="pf-field">
+            <span class="pf-label">FSI (MG/DL PER 1U)</span>
+            <input class="fi pf-input" type="number" inputmode="decimal" step="0.5" v-model.number="form.fsi" placeholder="es. 35" />
+            <span class="pf-hint">Di quanti mg/dL scendi con 1U</span>
+          </div>
+          <div class="pf-field">
+            <span class="pf-label">I:C (G CARBO PER 1U)</span>
+            <input class="fi pf-input" type="number" inputmode="decimal" step="0.5" v-model.number="form.ic" placeholder="es. 5" />
+            <span class="pf-hint">Grammi coperti da 1U</span>
+          </div>
+        </div>
+
+        <div class="pf-field">
+          <span class="pf-label">INSULINA RAPIDA</span>
+          <select class="fi pf-input" v-model="form.insRapida">
+            <option v-for="opt in rapidaOpts" :key="opt" :value="opt">{{ opt }}</option>
+          </select>
+        </div>
+
+        <div class="pf-field">
+          <span class="pf-label">INSULINA BASALE</span>
+          <select class="fi pf-input" v-model="form.insBasale">
+            <option value="">— nessuna —</option>
+            <option v-for="opt in basaleOpts" :key="opt" :value="opt">{{ opt }}</option>
+          </select>
+        </div>
+
+        <div class="pdiv">🍺 Limite alcolico</div>
+        <div class="pf-field">
+          <span class="pf-label">UNITÀ MAX A SETTIMANA</span>
+          <input class="fi pf-input" type="number" inputmode="numeric" v-model.number="form.alcMax" placeholder="es. 5" />
+          <span class="pf-hint">1U ≈ 1 spritz · 1 calice vino · 1 birra 33cl</span>
+        </div>
+
+        <div class="pdiv">🎨 Aspetto</div>
+        <div class="pf-field">
+          <span class="pf-label">TEMA</span>
+          <SegmentControl v-model="currentTheme" :options="[{value:'dark',label:'🌙 Scuro'},{value:'light',label:'☀️ Chiaro'}]" @update:modelValue="v => appStore.setTheme(v)" />
+        </div>
       </div>
-      <div class="pf-field">
-        <span class="pf-label">ALTEZZA (CM)</span>
-        <input class="fi pf-input" type="number" inputmode="numeric" v-model.number="form.height" placeholder="es. 174" />
-      </div>
-      <div class="pf-field">
-        <span class="pf-label">SESSO</span>
-        <SegmentControl v-model="form.sex" :options="[{value:'M',label:'♂ M'},{value:'F',label:'♀ F'}]" />
-      </div>
-    </div>
 
-    <div class="pf-field">
-      <span class="pf-label">ATTIVITÀ FISICA</span>
-      <SegmentControl v-model="form.activity" :options="activityOpts" />
-    </div>
+    </div><!-- /pf-cols -->
 
-    <div class="pf-field">
-      <span class="pf-label">OBIETTIVO</span>
-      <SegmentControl v-model="form.goal" :options="goalOpts" />
-    </div>
-
-    <div class="pdiv">🩸 Parametri glicemici</div>
-
-    <div class="pf-grid2">
-      <div class="pf-field">
-        <span class="pf-label">TARGET MIN</span>
-        <input class="fi pf-input" type="number" inputmode="numeric" v-model.number="form.targetMin" placeholder="es. 80" />
-      </div>
-      <div class="pf-field">
-        <span class="pf-label">TARGET MAX</span>
-        <input class="fi pf-input" type="number" inputmode="numeric" v-model.number="form.targetMax" placeholder="es. 180" />
-      </div>
-      <div class="pf-field">
-        <span class="pf-label">FSI (MG/DL PER 1U)</span>
-        <input class="fi pf-input" type="number" inputmode="decimal" step="0.5" v-model.number="form.fsi" placeholder="es. 35" />
-        <span class="pf-hint">Di quanti mg/dL scendi con 1U</span>
-      </div>
-      <div class="pf-field">
-        <span class="pf-label">I:C (G CARBO PER 1U)</span>
-        <input class="fi pf-input" type="number" inputmode="decimal" step="0.5" v-model.number="form.ic" placeholder="es. 5" />
-        <span class="pf-hint">Grammi coperti da 1U</span>
-      </div>
-    </div>
-
-    <div class="pf-field">
-      <span class="pf-label">INSULINA RAPIDA</span>
-      <select class="fi pf-input" v-model="form.insRapida">
-        <option v-for="opt in rapidaOpts" :key="opt" :value="opt">{{ opt }}</option>
-      </select>
-    </div>
-
-    <div class="pf-field">
-      <span class="pf-label">INSULINA BASALE</span>
-      <select class="fi pf-input" v-model="form.insBasale">
-        <option value="">— nessuna —</option>
-        <option v-for="opt in basaleOpts" :key="opt" :value="opt">{{ opt }}</option>
-      </select>
-    </div>
-
-    <div class="pdiv">🍺 Limite alcolico</div>
-
-    <div class="pf-field">
-      <span class="pf-label">UNITÀ MAX A SETTIMANA</span>
-      <input class="fi pf-input" type="number" inputmode="numeric" v-model.number="form.alcMax" placeholder="es. 5" />
-      <span class="pf-hint">1U ≈ 1 spritz · 1 calice vino · 1 birra 33cl</span>
-    </div>
-
-    <div class="pdiv">🎨 Aspetto</div>
-
-    <div class="pf-field">
-      <span class="pf-label">TEMA</span>
-      <SegmentControl v-model="currentTheme" :options="[{value:'dark',label:'🌙 Scuro'},{value:'light',label:'☀️ Chiaro'}]" @update:modelValue="v => appStore.setTheme(v)" />
-    </div>
-
-    <!-- GIST SYNC -->
+    <!-- GIST SYNC (larghezza piena) -->
     <div class="pdiv">☁️ Sincronizzazione GitHub Gist</div>
     <p class="pf-subtitle">I dati vengono salvati in un Gist privato su GitHub. Il token non viene mai trasmesso ad altri server.</p>
 
-    <div class="pf-field">
-      <span class="pf-label">GITHUB PERSONAL ACCESS TOKEN</span>
-      <div class="pf-token-row">
-        <input class="fi pf-input pf-token-input" :type="showToken ? 'text' : 'password'" v-model="gistToken" placeholder="ghp_xxxxxxxxxxxxxxxxxx" autocomplete="off" />
-        <button class="pf-token-btn" @click="showToken = !showToken" :title="showToken ? 'Nascondi token' : 'Mostra token'">{{ showToken ? '🙈' : '👁' }}</button>
-        <button class="pf-token-btn" @click="copyToken" :title="'Copia token'">📋</button>
+    <div class="pf-gist-body">
+      <div class="pf-field">
+        <span class="pf-label">GITHUB PERSONAL ACCESS TOKEN</span>
+        <div class="pf-token-row">
+          <input class="fi pf-input pf-token-input" :type="showToken ? 'text' : 'password'" v-model="gistToken" placeholder="ghp_xxxxxxxxxxxxxxxxxx" autocomplete="off" />
+          <button class="pf-token-btn" @click="showToken = !showToken" :title="showToken ? 'Nascondi token' : 'Mostra token'">{{ showToken ? '🙈' : '👁' }}</button>
+          <button class="pf-token-btn" @click="copyToken" :title="'Copia token'">📋</button>
+        </div>
+        <span class="pf-hint">Genera su github.com → Settings → Developer settings → Personal access tokens (scope: gist)</span>
       </div>
-      <span class="pf-hint">Genera su github.com → Settings → Developer settings → Personal access tokens (scope: gist)</span>
-    </div>
 
-    <div class="pf-field">
-      <span class="pf-label">GIST ID (compilato automaticamente)</span>
-      <input class="fi pf-input" type="text" v-model="gistId" placeholder="Lascia vuoto per creare un nuovo Gist" />
+      <div class="pf-field">
+        <span class="pf-label">GIST ID (compilato automaticamente)</span>
+        <input class="fi pf-input" type="text" v-model="gistId" placeholder="Lascia vuoto per creare un nuovo Gist" />
+      </div>
     </div>
 
     <div v-if="lastSync" class="pf-sync-info">
@@ -117,12 +132,6 @@
       <button class="gist-btn gist-dn" :disabled="gistBusy" @click="doImport">
         <span>{{ gistBusy === 'import' ? '⏳' : '☁️↓' }}</span> Importa da Gist
       </button>
-    </div>
-
-    <!-- TDEE calcolato -->
-    <div v-if="tdee" class="pf-tdee">
-      <div class="pf-tdee-title">📊 TDEE calcolato</div>
-      <div class="pf-tdee-val">{{ tdee }} kcal/giorno (con attività)</div>
     </div>
 
     <button class="bsave" @click="save">💾 Salva e ricalcola target</button>
@@ -280,6 +289,31 @@ function close() { app.closePanel() }
 </script>
 
 <style scoped>
+/* ── Desktop 2-column layout ── */
+.pf-cols {
+  display: flex;
+  flex-direction: column;
+}
+.pf-col {
+  flex: 1;
+  min-width: 0;
+}
+@media (min-width: 768px) {
+  .pf-cols {
+    flex-direction: row;
+    gap: 20px;
+  }
+  .pf-col:first-child {
+    border-right: 1px solid var(--bdr);
+    padding-right: 20px;
+  }
+  .pf-gist-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 20px;
+  }
+}
+
 .pf-title {
   font-size: 1.05rem;
   font-weight: 700;

@@ -64,7 +64,7 @@ export async function exportToGist() {
   const body = {
     description: 'GlicoLog — backup dati',
     public: false,
-    files: { [GIST_FILE]: { content: JSON.stringify(collectData(), null, 2) } }
+    files: { [GIST_FILE]: { content: JSON.stringify(collectData()) } }
   }
 
   const result = gistId
@@ -83,8 +83,19 @@ export async function importFromGist() {
   if (!gistId) throw new Error('Gist ID mancante — esegui prima un export')
 
   const gist     = await ghFetch(`https://api.github.com/gists/${gistId}`)
-  const content  = gist.files?.[GIST_FILE]?.content
-  if (!content) throw new Error(`File ${GIST_FILE} non trovato nel Gist`)
+  const fileInfo = gist.files?.[GIST_FILE]
+  if (!fileInfo) throw new Error(`File ${GIST_FILE} non trovato nel Gist`)
+
+  let content
+  if (fileInfo.truncated) {
+    // File > 1 MB: il raw_url non è accessibile dal browser (CORS).
+    // Soluzione: riesporta dal dispositivo con i dati aggiornati (formato compatto).
+    throw new Error('Il backup su Gist supera 1 MB e non può essere scaricato dal browser. Riesporta dal dispositivo che ha i dati più recenti, poi ritenta l\'import.')
+  } else {
+    content = fileInfo.content
+  }
+
+  if (!content) throw new Error(`File ${GIST_FILE} vuoto nel Gist`)
 
   const data = JSON.parse(content)
   restoreData(data)

@@ -201,6 +201,7 @@ import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useAppStore } from '@/stores/app.js'
 import { useStepsStore } from '@/stores/index.js'
 import { getDK } from '@/data/constants.js'
+import { getToken, getGistId, exportToGist } from '@/utils/gistSync.js'
 
 // Components
 import AppHeader        from '@/components/AppHeader.vue'
@@ -240,6 +241,12 @@ mq.addEventListener('change', e => { isDesktop.value = e.matches })
 
 // Chiudi quick add quando si apre un pannello
 watch(() => appStore.openPanel, val => { if (val) showQuickAdd.value = false })
+
+// Auto-save su Gist ad ogni cambio di data (se configurato)
+watch(() => appStore.dayOffset, async () => {
+  if (!getToken() || !getGistId()) return
+  try { await exportToGist() } catch { /* silent */ }
+})
 
 function closeOverlay() {
   if (appStore.openPanel) appStore.closePanel()

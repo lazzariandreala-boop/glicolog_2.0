@@ -1,5 +1,5 @@
 <template>
-  <div class="panel" :class="{ on: visible }">
+  <div class="panel" :class="[{ on: visible }, panelClass]">
     <div class="ph"></div>
 
     <!-- Banner giorno selezionato -->
@@ -17,7 +17,8 @@ import { useAppStore } from '@/stores/app.js'
 import { getDF } from '@/data/constants.js'
 
 const props = defineProps({
-  visible: { type: Boolean, default: false }
+  visible: { type: Boolean, default: false },
+  panelClass: { type: String, default: '' }
 })
 
 const app = useAppStore()
