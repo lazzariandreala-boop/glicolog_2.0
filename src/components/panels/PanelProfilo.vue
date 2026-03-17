@@ -93,7 +93,11 @@
 
     <div class="pf-field">
       <span class="pf-label">GITHUB PERSONAL ACCESS TOKEN</span>
-      <input class="fi pf-input" type="password" v-model="gistToken" placeholder="ghp_xxxxxxxxxxxxxxxxxx" autocomplete="off" />
+      <div class="pf-token-row">
+        <input class="fi pf-input pf-token-input" :type="showToken ? 'text' : 'password'" v-model="gistToken" placeholder="ghp_xxxxxxxxxxxxxxxxxx" autocomplete="off" />
+        <button class="pf-token-btn" @click="showToken = !showToken" :title="showToken ? 'Nascondi token' : 'Mostra token'">{{ showToken ? '🙈' : '👁' }}</button>
+        <button class="pf-token-btn" @click="copyToken" :title="'Copia token'">📋</button>
+      </div>
       <span class="pf-hint">Genera su github.com → Settings → Developer settings → Personal access tokens (scope: gist)</span>
     </div>
 
@@ -180,6 +184,13 @@ const gistToken  = ref(getToken())
 const gistId     = ref(getGistId())
 const lastSync   = ref(getLastSync())
 const gistBusy   = ref(null) // 'export' | 'import' | null
+const showToken  = ref(false)
+
+async function copyToken() {
+  if (!gistToken.value) return
+  await navigator.clipboard.writeText(gistToken.value)
+  app.toast('📋 Token copiato!')
+}
 
 const lastSyncFormatted = computed(() => {
   if (!lastSync.value) return ''
@@ -307,6 +318,32 @@ function close() { app.closePanel() }
 .pf-input {
   width: 100%;
   box-sizing: border-box;
+}
+.pf-token-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.pf-token-input {
+  flex: 1;
+  min-width: 0;
+}
+.pf-token-btn {
+  flex-shrink: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,.03) 0%, transparent 100%), var(--card);
+  border: 1.5px solid var(--bdr2);
+  border-radius: 14px;
+  padding: 16px 10.5px;
+  cursor: pointer;
+  font-size: .9rem;
+  color: var(--txt2);
+  line-height: 1;
+  font-family: var(--sans);
+  transition: border-color .2s;
+}
+.pf-token-btn:hover {
+  border-color: var(--g);
+  color: var(--txt);
 }
 .pf-hint {
   font-size: .68rem;
