@@ -49,7 +49,7 @@ const visible = ref(false)
 const isEdit  = ref(false)
 const inputRef = ref(null)
 
-const form = ref({ glic: null, trend: '→', note: '', ts: Date.now() })
+const form = ref({ glic: null, trend: '→', note: '', ts: app.defaultTs() })
 
 watch(() => app.openPanel, (p) => {
   visible.value = p === 'glicemia'
@@ -59,7 +59,7 @@ watch(() => app.openPanel, (p) => {
     if (e) {
       form.value = { glic: e.glic, trend: e.trend||'', note: e.note||'', ts: e.ts }
     } else {
-      form.value = { glic: null, trend: '→', note: '', ts: Date.now() }
+      form.value = { glic: null, trend: '→', note: '', ts: app.defaultTs() }
     }
     nextTick(() => inputRef.value?.focus())
   }

@@ -49,6 +49,14 @@ export const useAppStore = defineStore('app', () => {
   function triggerGlicAlert(data) { glicAlertData.value = data; showGlicAlert.value = true }
   function closeGlicAlert() { showGlicAlert.value = false; glicAlertData.value = null }
 
+  // Timestamp di default sul giorno visualizzato (non sempre oggi)
+  function defaultTs() {
+    if (dayOffset.value === 0) return Date.now()
+    const d = new Date()
+    d.setDate(d.getDate() + dayOffset.value)
+    return d.getTime()
+  }
+
   // Panel open/close
   function openPanelFor(name, entry = null) {
     openPanel.value = name
@@ -82,6 +90,7 @@ export const useAppStore = defineStore('app', () => {
     showDeleteConfirm, deleteTarget, deleteMsg, showStepsModal,
     showWaterModal, showPdfModal, showScanner, scannerTarget,
     showGlicAlert, glicAlertData, triggerGlicAlert, closeGlicAlert,
+    defaultTs,
     openPanelFor, openPanelPrefill, closePanel, confirmDelete, cancelDelete
   }
 })

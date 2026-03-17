@@ -112,15 +112,16 @@ const cfgMax = computed(() => configStore.cfg.targetMax || 180)
 
 // --- punti principali ---
 const points = computed(() => {
+  const base = app.dayOffset
   if (period.value === 'oggi') {
-    return entriesStore.forDay(getDK(0))
+    return entriesStore.forDay(getDK(base))
       .filter(e => e.glic > 0)
       .map(e => ({ ts: e.ts, v: e.glic }))
       .sort((a, b) => a.ts - b.ts)
   }
   const arr = []
   for (let i = -(period.value - 1); i <= 0; i++) {
-    entriesStore.forDay(getDK(i)).filter(e => e.glic > 0).forEach(e => arr.push({ ts: e.ts, v: e.glic }))
+    entriesStore.forDay(getDK(base + i)).filter(e => e.glic > 0).forEach(e => arr.push({ ts: e.ts, v: e.glic }))
   }
   return arr.sort((a, b) => a.ts - b.ts)
 })
@@ -129,7 +130,10 @@ const hasData = computed(() => points.value.length > 0)
 // --- avg per fascia oraria ---
 // Mattina 7:00–12:30 | Pomeriggio 12:30–18:00 | Sera 18:00–22:00 | Notte 22:00–7:00
 const mealAvgs = computed(() => {
-  const days = period.value === 'oggi' ? [0] : Array.from({ length: period.value }, (_, i) => -(period.value - 1) + i)
+  const base = app.dayOffset
+  const days = period.value === 'oggi'
+    ? [base]
+    : Array.from({ length: period.value }, (_, i) => base - (period.value - 1) + i)
   const mat = [], pom = [], ser = [], not = []
   days.forEach(offset => {
     entriesStore.forDay(getDK(offset)).forEach(e => {
@@ -155,9 +159,10 @@ const mealAvgs = computed(() => {
 
 // --- punti storico ---
 const storicoPoints = computed(() => {
+  const base = app.dayOffset
   const arr = []
   for (let i = -(storicoDays.value - 1); i <= 0; i++) {
-    entriesStore.forDay(getDK(i)).filter(e => e.glic > 0).forEach(e => arr.push({ ts: e.ts, v: e.glic }))
+    entriesStore.forDay(getDK(base + i)).filter(e => e.glic > 0).forEach(e => arr.push({ ts: e.ts, v: e.glic }))
   }
   return arr.sort((a, b) => a.ts - b.ts)
 })
@@ -174,9 +179,10 @@ const storicoStats = computed(() => {
 })
 
 const storicoSlotAvgs = computed(() => {
+  const base = app.dayOffset
   const mat = [], pom = [], ser = [], not = []
   for (let i = -(storicoDays.value - 1); i <= 0; i++) {
-    entriesStore.forDay(getDK(i)).forEach(e => {
+    entriesStore.forDay(getDK(base + i)).forEach(e => {
       if (e.glic > 0) {
         const d = new Date(e.ts)
         const mins = d.getHours() * 60 + d.getMinutes()
@@ -244,16 +250,16 @@ function drawChart(canvasRef, wrapRef, pts, todayMode, numDaysParam = 14) {
   const yMax = Math.ceil(Math.max(dataMax, tMax + 20, 200) / 20) * 20
 
   let xMin, xMax
+  const offset = app.dayOffset
   if (todayMode) {
-    const d = new Date(); d.setHours(0, 0, 0, 0)
+    const d = new Date(); d.setDate(d.getDate() + offset); d.setHours(0, 0, 0, 0)
     xMin = d.getTime()
     xMax = xMin + 86400000 - 1
   } else {
-    const startDay = new Date(); startDay.setDate(startDay.getDate() - (pts.length > 0 ? Math.ceil((Date.now() - Math.min(...pts.map(p => p.ts))) / 86400000) : 6)); startDay.setHours(0, 0, 0, 0)
-    const startFixed = new Date(); startFixed.setDate(startFixed.getDate() - (numDaysParam - 1)); startFixed.setHours(0, 0, 0, 0)
-    xMin = Math.min(startDay.getTime(), startFixed.getTime())
-    const endDay = new Date(); endDay.setHours(23, 59, 59, 999)
+    const endDay = new Date(); endDay.setDate(endDay.getDate() + offset); endDay.setHours(23, 59, 59, 999)
     xMax = endDay.getTime()
+    const startFixed = new Date(); startFixed.setDate(startFixed.getDate() + offset - (numDaysParam - 1)); startFixed.setHours(0, 0, 0, 0)
+    xMin = startFixed.getTime()
   }
 
   const toX = ts  => PL + ((ts - xMin) / (xMax - xMin)) * plotW

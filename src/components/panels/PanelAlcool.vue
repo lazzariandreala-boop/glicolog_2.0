@@ -80,7 +80,7 @@ const alcDb = ALCDB
 const alcGroups = ALC_GROUPS
 
 const defaultRow = () => ({ id: Date.now() + Math.random(), typeKey: '', qty: 1 })
-const form = ref({ rows: [defaultRow()], ts: Date.now() })
+const form = ref({ rows: [defaultRow()], ts: app.defaultTs() })
 
 const totals = computed(() => {
   let units = 0, kcal = 0, carbs = 0, protein = 0, fat = 0
@@ -110,7 +110,7 @@ watch(() => app.openPanel, (p) => {
     if (e && e.drinks) {
       form.value = { rows: e.drinks.map(d => ({ id: Date.now()+Math.random(), typeKey: d.k, qty: d.qty })), ts: e.ts }
     } else {
-      form.value = { rows: [defaultRow()], ts: Date.now() }
+      form.value = { rows: [defaultRow()], ts: app.defaultTs() }
     }
   }
 })

@@ -16,13 +16,15 @@
     <!-- PULL TO REFRESH indicator -->
     <div class="ptr-bar" ref="ptrBar">↻ Rilascia per aggiornare</div>
 
+    <!-- NAVIGAZIONE GIORNO (globale) -->
+    <DayNavigation />
+
     <!-- TAB CONTENT -->
     <div class="tab-content">
 
-      <!-- GIORNALE (home): chip riepilogo + navigazione giorno + timeline -->
+      <!-- GIORNALE (home): chip riepilogo + timeline -->
       <template v-if="activeTab === 'entries'">
         <SummaryStrip />
-        <DayNavigation />
         <Timeline />
       </template>
 

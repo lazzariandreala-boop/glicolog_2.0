@@ -113,7 +113,7 @@ const form = ref({
   glic: null, trend: '→',
   boloOverride: null,
   mC: null, mP: null, mG: null, mF: null,
-  ts: Date.now()
+  ts: app.defaultTs()
 })
 
 // Calcolo totali macro dalle food rows
@@ -185,7 +185,7 @@ watch(() => app.openPanel, (p) => {
     } else {
       const h = new Date().getHours()
       const mt = h < 11 ? 'Colazione' : h < 15 ? 'Pranzo' : 'Cena'
-      form.value = { mealType: mt, foodRows: [defaultRow()], glic: null, trend: '→', boloOverride: null, mC: null, mP: null, mG: null, mF: null, ts: Date.now() }
+      form.value = { mealType: mt, foodRows: [defaultRow()], glic: null, trend: '→', boloOverride: null, mC: null, mP: null, mG: null, mF: null, ts: app.defaultTs() }
     }
   }
 })

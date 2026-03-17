@@ -282,6 +282,14 @@ function drawMonthChart() {
   })
 }
 
+// Naviga al mese della data selezionata quando cambia il giorno
+watch(() => appStore.dayOffset, (offset) => {
+  const d = new Date()
+  d.setDate(d.getDate() + offset)
+  viewYear.value  = d.getFullYear()
+  viewMonth.value = d.getMonth()
+})
+
 onMounted(() => nextTick(drawMonthChart))
 watch([statusCache, viewMonth, viewYear], () => nextTick(drawMonthChart))
 </script>

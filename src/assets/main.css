@@ -498,7 +498,7 @@ body.light-mode .bsave { background: linear-gradient(135deg, #059669 0%, #047857
 .pdf-opt-sub { font-size: .72rem; color: var(--txt2) }
 
 /* ── TAB LAYOUT ── */
-.tab-content { padding-bottom: calc(72px + env(safe-area-inset-bottom)); min-height: calc(100dvh - 56px) }
+.tab-content { padding-bottom: calc(72px + env(safe-area-inset-bottom)); min-height: 0 }
 .tab-pad { padding: 14px }
 
 /* ── BOTTOM NAVBAR ── */

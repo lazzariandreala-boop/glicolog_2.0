@@ -118,7 +118,7 @@ const aperiGroups = computed(() => {
 const defaultDrink = () => ({ id: Date.now() + Math.random(), typeKey: '', qty: 1 })
 const defaultItem  = () => ({ id: Date.now() + Math.random(), itemKey: '', grams: 30 })
 
-const form = ref({ drinks: [defaultDrink()], items: [], ts: Date.now() })
+const form = ref({ drinks: [defaultDrink()], items: [], ts: app.defaultTs() })
 
 function addDrink() { form.value.drinks.push(defaultDrink()) }
 function removeDrink(i) { form.value.drinks.splice(i, 1) }
@@ -177,7 +177,7 @@ watch(() => app.openPanel, (p) => {
         ts: e.ts
       }
     } else {
-      form.value = { drinks: [defaultDrink()], items: [], ts: Date.now() }
+      form.value = { drinks: [defaultDrink()], items: [], ts: app.defaultTs() }
     }
   }
 })

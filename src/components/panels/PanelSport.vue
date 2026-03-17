@@ -136,7 +136,7 @@ const sportGroups = {
   ],
 }
 
-const form = ref({ sportKey: '', duration: 60, note: '', ts: Date.now() })
+const form = ref({ sportKey: '', duration: 60, note: '', ts: app.defaultTs() })
 const estimatedKcal = ref(0)
 
 function calcKcal() {
@@ -152,7 +152,7 @@ watch(() => app.openPanel, (p) => {
     const e = app.editEntry
     isEdit.value = !!e
     if (e) form.value = { sportKey: e.sportKey||'', duration: e.duration||60, note: e.note||'', ts: e.ts }
-    else form.value = { sportKey: '', duration: 60, note: '', ts: Date.now() }
+    else form.value = { sportKey: '', duration: 60, note: '', ts: app.defaultTs() }
     calcKcal()
   }
 })

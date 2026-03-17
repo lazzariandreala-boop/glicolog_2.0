@@ -63,7 +63,7 @@ const subtypeOpts = [
 const rapidaOpts = ['Humalog','Novorapid','Fiasp','Apidra','Lyumjev','Admelog','Regular']
 const basaleOpts = ['Lantus','Toujeo','Tresiba','Levemir','Basaglar','Semglee','Ryzodeg']
 
-const form = ref({ insulinSubtype: 'Bolo', insulinType: 'Humalog', units: null, note: '', ts: Date.now() })
+const form = ref({ insulinSubtype: 'Bolo', insulinType: 'Humalog', units: null, note: '', ts: app.defaultTs() })
 
 watch(() => app.openPanel, (p) => {
   visible.value = p === 'insulina'
@@ -77,7 +77,7 @@ watch(() => app.openPanel, (p) => {
       form.value = { insulinSubtype: e.insulinSubtype||'Bolo', insulinType: e.insulinType||'Humalog', units: e.units, note: e.note||'', ts: e.ts }
     } else {
       isEdit.value = false
-      form.value = { insulinSubtype: 'Bolo', insulinType: cfgStore.cfg.insRapida || 'Humalog', units: null, note: '', ts: Date.now() }
+      form.value = { insulinSubtype: 'Bolo', insulinType: cfgStore.cfg.insRapida || 'Humalog', units: null, note: '', ts: app.defaultTs() }
     }
     nextTick(() => inputRef.value?.focus())
   }

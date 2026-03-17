@@ -80,7 +80,7 @@ const visible = ref(false)
 const isEdit = ref(false)
 
 const defaultRow = () => ({ id: Date.now() + Math.random(), name: '', grams: 0, c100:0, p100:0, g100:0, f100:0, k100:0, isDrink:false })
-const form = ref({ foodRows: [defaultRow()], glic: null, trend: '→', boloOverride: null, mC: null, mP: null, mG: null, mF: null, ts: Date.now() })
+const form = ref({ foodRows: [defaultRow()], glic: null, trend: '→', boloOverride: null, mC: null, mP: null, mG: null, mF: null, ts: app.defaultTs() })
 
 const totals = computed(() => {
   let c=0,p=0,g=0,f=0,k=0
@@ -123,7 +123,7 @@ watch(() => app.openPanel, (p) => {
     const e = app.editEntry
     isEdit.value = !!e
     if (e) form.value = { foodRows: e.foodRows?.length ? e.foodRows.map(r=>({...defaultRow(),...r})) : [defaultRow()], glic: e.glic||null, trend: e.trend||'→', boloOverride: e.bolo||null, mC: e.carbs||null, mP: e.protein||null, mG: e.fat||null, mF: e.fiber||null, ts: e.ts }
-    else form.value = { foodRows: [defaultRow()], glic: null, trend: '→', boloOverride: null, mC: null, mP: null, mG: null, mF: null, ts: Date.now() }
+    else form.value = { foodRows: [defaultRow()], glic: null, trend: '→', boloOverride: null, mC: null, mP: null, mG: null, mF: null, ts: app.defaultTs() }
   }
 })
 
