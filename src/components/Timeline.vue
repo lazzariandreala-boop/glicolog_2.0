@@ -6,7 +6,7 @@
       <!-- <span style="color:var(--g)">Usa i pulsanti sopra</span> per aggiungere qualcosa. -->
     </div>
 
-    <template v-for="group in groups" :key="group.label">
+    <template v-for="(group, gi) in groups" :key="gi">
       <div class="tl-dg">{{ group.label }}</div>
       <div
         v-for="entry in group.items"
@@ -63,18 +63,21 @@ const cfgStore = useConfigStore()
 const entries = computed(() => entriesStore.forDay(getDK(app.dayOffset)))
 
 // Raggruppamento per ora del giorno
+// notte_alba = 00:00–06:59 → sopra Mattina
+// notte_sera = 22:00–23:59 → sotto Sera
+const SLOT_LABELS = { notte_alba: 'Notte 🌙', Mattina: 'Mattina', Pranzo: 'Pranzo', Pomeriggio: 'Pomeriggio', Sera: 'Sera', notte_sera: 'Notte 🌙' }
+const SLOT_ORDER  = ['notte_alba', 'Mattina', 'Pranzo', 'Pomeriggio', 'Sera', 'notte_sera']
+
 const groups = computed(() => {
   const sorted = [...entries.value].sort((a, b) => a.ts - b.ts)
   const map = {}
   sorted.forEach(e => {
-    const d = new Date(e.ts)
-    const h = d.getHours()
-    const grp = h < 6 ? 'Notte' : h < 12 ? 'Mattina' : h < 14 ? 'Pranzo' : h < 18 ? 'Pomeriggio' : 'Sera'
-    if (!map[grp]) map[grp] = []
-    map[grp].push(e)
+    const h = new Date(e.ts).getHours()
+    const key = h < 7 ? 'notte_alba' : h < 12 ? 'Mattina' : h < 14 ? 'Pranzo' : h < 18 ? 'Pomeriggio' : h < 22 ? 'Sera' : 'notte_sera'
+    if (!map[key]) map[key] = []
+    map[key].push(e)
   })
-  const order = ['Mattina','Pranzo','Pomeriggio','Sera','Notte']
-  return order.filter(l => map[l]).map(l => ({ label: l, items: map[l] }))
+  return SLOT_ORDER.filter(k => map[k]).map(k => ({ label: SLOT_LABELS[k], items: map[k] }))
 })
 
 function entryIcon(e) {

@@ -13,9 +13,6 @@
       <button class="ibar-x" @click="showInstallBanner = false">✕</button>
     </div>
 
-    <!-- PULL TO REFRESH indicator (mobile only) -->
-    <div class="ptr-bar" ref="ptrBar">↻ Rilascia per aggiornare</div>
-
     <!-- NAVIGAZIONE GIORNO (globale) -->
     <DayNavigation />
 
@@ -24,9 +21,9 @@
          ═══════════════════════════════ -->
     <template v-if="isDesktop">
 
-      <!-- GRUPPO 1: Giornale + Grafici -->
+      <!-- GRUPPO 1: TimeLine + Grafici -->
       <div v-if="desktopGroup === 'main'" class="desk-layout">
-        <!-- Colonna sinistra: giornale -->
+        <!-- Colonna sinistra: TimeLine -->
         <div class="desk-col">
           <SummaryStrip />
           <Timeline />
@@ -86,7 +83,7 @@
     <template v-else>
       <div class="tab-content">
 
-        <!-- GIORNALE -->
+        <!-- TIMELINE -->
         <template v-if="activeTab === 'entries'">
           <SummaryStrip />
           <Timeline />
@@ -121,7 +118,7 @@
       <!-- Desktop: 2 voci di gruppo -->
       <template v-if="isDesktop">
         <button class="bnav-tab" :class="{ active: desktopGroup === 'main' }" @click="desktopGroup = 'main'">
-          <span class="bnav-ico">📋</span><span class="bnav-lbl">Giornale & Grafici</span>
+          <span class="bnav-ico">📋</span><span class="bnav-lbl">TimeLine & Grafici</span>
         </button>
         <button class="bnav-tab" :class="{ active: desktopGroup === 'overview' }" @click="desktopGroup = 'overview'">
           <span class="bnav-ico">📅</span><span class="bnav-lbl">Mensile & Nutrizione</span>
@@ -132,7 +129,7 @@
       <!-- Mobile: 4 tab + pulsante centrale -->
       <template v-else>
         <button class="bnav-tab" :class="{ active: activeTab === 'entries' }" @click="activeTab = 'entries'">
-          <span class="bnav-ico">📋</span><span class="bnav-lbl">Giornale</span>
+          <span class="bnav-ico">📋</span><span class="bnav-lbl">TimeLine</span>
         </button>
         <button class="bnav-tab" :class="{ active: activeTab === 'stats' }" @click="activeTab = 'stats'">
           <span class="bnav-ico">📊</span><span class="bnav-lbl">Grafici</span>
@@ -197,7 +194,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useAppStore } from '@/stores/app.js'
 import { useStepsStore } from '@/stores/index.js'
 import { getDK } from '@/data/constants.js'
@@ -232,7 +229,6 @@ const activeTab         = ref('entries')
 const desktopGroup      = ref('main')
 const showInstallBanner = ref(false)
 const showQuickAdd      = ref(false)
-const ptrBar            = ref(null)
 
 // Rilevamento desktop
 const mq = window.matchMedia('(min-width: 768px)')
@@ -260,35 +256,6 @@ function doInstall() {
   deferredInstallPrompt.prompt()
   deferredInstallPrompt = null
   showInstallBanner.value = false
-}
-
-// Pull-to-refresh (mobile only)
-let startY = 0
-let pulling = false
-const THRESHOLD = 48
-
-function onTouchStart(e) {
-  if (appStore.openPanel) return
-  if (window.scrollY > 0) return
-  startY = e.touches[0].clientY
-  pulling = true
-}
-function onTouchMove(e) {
-  if (!pulling || !ptrBar.value) return
-  const dy = e.touches[0].clientY - startY
-  if (dy <= 0) { ptrBar.value.style.height = '0'; return }
-  const h = Math.min(dy * 0.4, 68)
-  ptrBar.value.style.height = h + 'px'
-}
-function onTouchEnd() {
-  if (!pulling || !ptrBar.value) return
-  pulling = false
-  const h = parseInt(ptrBar.value.style.height) || 0
-  ptrBar.value.style.height = '0'
-  if (h >= THRESHOLD) {
-    appStore.toast('↺ Aggiornamento...')
-    setTimeout(() => appStore.toast('✅ Aggiornato'), 400)
-  }
 }
 
 // Health Connect (auto-sync, Android only)
@@ -324,10 +291,6 @@ onMounted(() => {
     appStore.toast('✅ App installata!')
   })
 
-  document.addEventListener('touchstart', onTouchStart, { passive: true })
-  document.addEventListener('touchmove', onTouchMove, { passive: true })
-  document.addEventListener('touchend', onTouchEnd, { passive: true })
-
   if (window.Capacitor) {
     document.addEventListener('deviceready', () => setTimeout(autoSyncHealthConnect, 1200), false)
     setTimeout(autoSyncHealthConnect, 2500)
@@ -338,9 +301,4 @@ onMounted(() => {
   }
 })
 
-onUnmounted(() => {
-  document.removeEventListener('touchstart', onTouchStart)
-  document.removeEventListener('touchmove', onTouchMove)
-  document.removeEventListener('touchend', onTouchEnd)
-})
 </script>
