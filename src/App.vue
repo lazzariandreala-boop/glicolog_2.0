@@ -13,58 +13,139 @@
       <button class="ibar-x" @click="showInstallBanner = false">✕</button>
     </div>
 
-    <!-- PULL TO REFRESH indicator -->
+    <!-- PULL TO REFRESH indicator (mobile only) -->
     <div class="ptr-bar" ref="ptrBar">↻ Rilascia per aggiornare</div>
 
     <!-- NAVIGAZIONE GIORNO (globale) -->
     <DayNavigation />
 
-    <!-- TAB CONTENT -->
-    <div class="tab-content">
+    <!-- ═══════════════════════════════
+         DESKTOP LAYOUT (2 colonne)
+         ═══════════════════════════════ -->
+    <template v-if="isDesktop">
 
-      <!-- GIORNALE (home): chip riepilogo + timeline -->
-      <template v-if="activeTab === 'entries'">
-        <SummaryStrip />
-        <Timeline />
-      </template>
-
-      <!-- STATISTICHE: grafico + storico -->
-      <template v-else-if="activeTab === 'stats'">
-        <div class="tab-pad">
-          <GlucoseChart />
+      <!-- GRUPPO 1: Giornale + Grafici -->
+      <div v-if="desktopGroup === 'main'" class="desk-layout">
+        <!-- Colonna sinistra: giornale -->
+        <div class="desk-col">
+          <SummaryStrip />
+          <Timeline />
         </div>
-      </template>
-
-      <!-- RIEPILOGO MENSILE -->
-      <template v-else-if="activeTab === 'calendar'">
-        <div class="tab-pad">
-          <MonthlyCalendar />
+        <!-- Colonna destra: inserimento rapido + grafici (sticky) -->
+        <div class="desk-col desk-col-sticky" style="margin-top: 36px !important;">
+          <div class="desk-section-lbl">Inserimento rapido</div>
+          <div class="home-grid desk-quick-grid">
+            <button class="hg-btn hg-p"     @click="appStore.openPanelFor('pasto')">
+              <span class="hg-ico">🍽️</span><span class="hg-lbl">Pasto</span>
+            </button>
+            <button class="hg-btn hg-s"     @click="appStore.openPanelFor('spuntino')">
+              <span class="hg-ico">🍎</span><span class="hg-lbl">Spuntino</span>
+            </button>
+            <button class="hg-btn hg-glic"  @click="appStore.openPanelFor('glicemia')">
+              <span class="hg-ico">🩸</span><span class="hg-lbl">Glicemia</span>
+            </button>
+            <button class="hg-btn hg-ins"   @click="appStore.openPanelFor('insulina')">
+              <span class="hg-ico">💉</span><span class="hg-lbl">Insulina</span>
+            </button>
+            <button class="hg-btn hg-cor"   @click="appStore.openPanelFor('correzione')">
+              <span class="hg-ico">🍬</span><span class="hg-lbl">Correzione</span>
+            </button>
+            <button class="hg-btn hg-aperi" @click="appStore.openPanelFor('aperitivi')">
+              <span class="hg-ico">🥂</span><span class="hg-lbl">Aperitivo</span>
+            </button>
+          </div>
+          <div class="desk-section-lbl" style="margin-top:8px">Andamento glicemia</div>
+          <div class="tab-pad">
+            <GlucoseChart />
+          </div>
         </div>
-      </template>
+      </div>
 
-      <!-- NUTRIZIONE: macro + 3 box riepilogo -->
-      <template v-else-if="activeTab === 'nutrition'">
-        <NutritionSection />
-        <SummaryBoxes />
-      </template>
+      <!-- GRUPPO 2: Mensile + Nutrizione -->
+      <div v-else class="desk-layout">
+        <!-- Colonna sinistra: calendario -->
+        <div class="desk-col">
+          <div class="desk-section-lbl">Riepilogo mensile</div>
+          <div class="tab-pad">
+            <MonthlyCalendar />
+          </div>
+        </div>
+        <!-- Colonna destra: nutrizione -->
+        <div class="desk-col desk-col-sticky">
+          <div class="desk-section-lbl">Nutrizione del giorno</div>
+          <NutritionSection />
+          <SummaryBoxes />
+        </div>
+      </div>
 
-    </div>
+    </template>
 
-    <!-- BOTTOM NAVBAR -->
+    <!-- ═══════════════════════════════
+         MOBILE LAYOUT (tab singolo)
+         ═══════════════════════════════ -->
+    <template v-else>
+      <div class="tab-content">
+
+        <!-- GIORNALE -->
+        <template v-if="activeTab === 'entries'">
+          <SummaryStrip />
+          <Timeline />
+        </template>
+
+        <!-- STATISTICHE -->
+        <template v-else-if="activeTab === 'stats'">
+          <div class="tab-pad">
+            <GlucoseChart />
+          </div>
+        </template>
+
+        <!-- RIEPILOGO MENSILE -->
+        <template v-else-if="activeTab === 'calendar'">
+          <div class="tab-pad">
+            <MonthlyCalendar />
+          </div>
+        </template>
+
+        <!-- NUTRIZIONE -->
+        <template v-else-if="activeTab === 'nutrition'">
+          <NutritionSection />
+          <SummaryBoxes />
+        </template>
+
+      </div>
+    </template>
+
+    <!-- BOTTOM NAVBAR / SIDEBAR -->
     <nav class="bnav">
-      <button class="bnav-tab" :class="{ active: activeTab === 'entries' }" @click="activeTab = 'entries'">
-        <span class="bnav-ico">📋</span><span class="bnav-lbl">Giornale</span>
-      </button>
-      <button class="bnav-tab" :class="{ active: activeTab === 'stats' }" @click="activeTab = 'stats'">
-        <span class="bnav-ico">📊</span><span class="bnav-lbl">Grafici</span>
-      </button>
-      <button class="bnav-add" @click="showQuickAdd = true">+</button>
-      <button class="bnav-tab" :class="{ active: activeTab === 'calendar' }" @click="activeTab = 'calendar'">
-        <span class="bnav-ico">📅</span><span class="bnav-lbl">Mensile</span>
-      </button>
-      <button class="bnav-tab" :class="{ active: activeTab === 'nutrition' }" @click="activeTab = 'nutrition'">
-        <span class="bnav-ico">🥗</span><span class="bnav-lbl">Nutrizione</span>
-      </button>
+
+      <!-- Desktop: 2 voci di gruppo -->
+      <template v-if="isDesktop">
+        <button class="bnav-tab" :class="{ active: desktopGroup === 'main' }" @click="desktopGroup = 'main'">
+          <span class="bnav-ico">📋</span><span class="bnav-lbl">Giornale & Grafici</span>
+        </button>
+        <button class="bnav-tab" :class="{ active: desktopGroup === 'overview' }" @click="desktopGroup = 'overview'">
+          <span class="bnav-ico">📅</span><span class="bnav-lbl">Mensile & Nutrizione</span>
+        </button>
+        <button class="bnav-add" @click="showQuickAdd = true">+</button>
+      </template>
+
+      <!-- Mobile: 4 tab + pulsante centrale -->
+      <template v-else>
+        <button class="bnav-tab" :class="{ active: activeTab === 'entries' }" @click="activeTab = 'entries'">
+          <span class="bnav-ico">📋</span><span class="bnav-lbl">Giornale</span>
+        </button>
+        <button class="bnav-tab" :class="{ active: activeTab === 'stats' }" @click="activeTab = 'stats'">
+          <span class="bnav-ico">📊</span><span class="bnav-lbl">Grafici</span>
+        </button>
+        <button class="bnav-add" @click="showQuickAdd = true">+</button>
+        <button class="bnav-tab" :class="{ active: activeTab === 'calendar' }" @click="activeTab = 'calendar'">
+          <span class="bnav-ico">📅</span><span class="bnav-lbl">Mensile</span>
+        </button>
+        <button class="bnav-tab" :class="{ active: activeTab === 'nutrition' }" @click="activeTab = 'nutrition'">
+          <span class="bnav-ico">🥗</span><span class="bnav-lbl">Nutrizione</span>
+        </button>
+      </template>
+
     </nav>
 
     <!-- OVERLAY (pannelli + quick add) -->
@@ -96,7 +177,7 @@
       </div>
     </div>
 
-    <!-- PANNELLI (bottom sheets) -->
+    <!-- PANNELLI (bottom sheets / modali) -->
     <PanelPasto />
     <PanelSpuntino />
     <PanelGlicemia />
@@ -147,9 +228,15 @@ import PanelProfilo    from '@/components/panels/PanelProfilo.vue'
 const appStore = useAppStore()
 
 const activeTab         = ref('entries')
+const desktopGroup      = ref('main')
 const showInstallBanner = ref(false)
 const showQuickAdd      = ref(false)
 const ptrBar            = ref(null)
+
+// Rilevamento desktop
+const mq = window.matchMedia('(min-width: 768px)')
+const isDesktop = ref(mq.matches)
+mq.addEventListener('change', e => { isDesktop.value = e.matches })
 
 // Chiudi quick add quando si apre un pannello
 watch(() => appStore.openPanel, val => { if (val) showQuickAdd.value = false })
@@ -168,7 +255,7 @@ function doInstall() {
   showInstallBanner.value = false
 }
 
-// Pull-to-refresh
+// Pull-to-refresh (mobile only)
 let startY = 0
 let pulling = false
 const THRESHOLD = 48
