@@ -8,12 +8,19 @@
     </div>
 
     <div style="display:flex;gap:8px;align-items:center">
-      <!-- PDF export -->
+      <!-- Sync Gist (pull → merge → push) -->
       <button
-        style="background:none;border:none;color:var(--txt2);font-size:1rem;cursor:pointer;padding:4px"
-        @click="appStore.showPdfModal = true"
-        title="Esporta PDF"
-      >📄</button>
+        class="hdr-sync-btn"
+        :class="{ spinning: syncing }"
+        :disabled="syncing"
+        @click="syncGist"
+        title="Sincronizza con Gist"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/>
+          <path d="M21 3v5h-5"/>
+        </svg>
+      </button>
 
       <!-- Theme toggle -->
       <button
@@ -36,10 +43,12 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useAppStore } from '@/stores/app.js'
 import { DI, MI, p2 } from '@/data/constants.js'
+import { syncWithGist, getToken, getGistId } from '@/utils/gistSync.js'
 
 const appStore = useAppStore()
 const time = ref('')
 const date = ref('')
+const syncing = ref(false)
 
 function tick() {
   const n = new Date()
@@ -51,7 +60,41 @@ function toggleTheme() {
   appStore.setTheme(appStore.theme === 'dark' ? 'light' : 'dark')
 }
 
+async function syncGist() {
+  if (!getToken() || !getGistId()) {
+    appStore.toast('⚠️ Token e Gist ID richiesti — configurali nel Profilo')
+    return
+  }
+  syncing.value = true
+  try {
+    await syncWithGist()
+    appStore.toast('✅ Sync completato')
+    window.location.reload()
+  } catch (e) {
+    appStore.toast('❌ ' + e.message)
+  } finally {
+    syncing.value = false
+  }
+}
+
 let interval
 onMounted(() => { tick(); interval = setInterval(tick, 15000) })
 onUnmounted(() => clearInterval(interval))
 </script>
+
+<style scoped>
+.hdr-sync-btn {
+  background: none;
+  border: none;
+  color: var(--txt2);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+}
+.hdr-sync-btn.spinning {
+  opacity: 0.5;
+  animation: spin 1s linear infinite;
+}
+</style>

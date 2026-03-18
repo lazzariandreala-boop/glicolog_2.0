@@ -86,19 +86,74 @@ export async function importFromGist() {
   const fileInfo = gist.files?.[GIST_FILE]
   if (!fileInfo) throw new Error(`File ${GIST_FILE} non trovato nel Gist`)
 
-  let content
-  if (fileInfo.truncated) {
-    // File > 1 MB: il raw_url non è accessibile dal browser (CORS).
-    // Soluzione: riesporta dal dispositivo con i dati aggiornati (formato compatto).
-    throw new Error('Il backup su Gist supera 1 MB e non può essere scaricato dal browser. Riesporta dal dispositivo che ha i dati più recenti, poi ritenta l\'import.')
-  } else {
-    content = fileInfo.content
-  }
+  if (fileInfo.truncated)
+    throw new Error('Il backup su Gist supera 1 MB. Riesporta dal dispositivo principale, poi ritenta.')
 
+  const content = fileInfo.content
   if (!content) throw new Error(`File ${GIST_FILE} vuoto nel Gist`)
 
   const data = JSON.parse(content)
   restoreData(data)
   localStorage.setItem(SYNC_KEY, new Date().toISOString())
   return data
+}
+
+// ── SYNC (pull → merge → push) ───────────────────────────────────
+// Scarica il Gist, unisce con i dati locali senza perdite, poi salva.
+export async function syncWithGist() {
+  const gistId = getGistId()
+  if (!gistId) throw new Error('Gist ID mancante — esegui prima un export dal Profilo')
+
+  const gist     = await ghFetch(`https://api.github.com/gists/${gistId}`)
+  const fileInfo = gist.files?.[GIST_FILE]
+  if (!fileInfo) throw new Error(`File ${GIST_FILE} non trovato nel Gist`)
+
+  if (fileInfo.truncated)
+    throw new Error('Il backup su Gist supera 1 MB. Riesporta dal dispositivo principale, poi ritenta.')
+
+  const content = fileInfo.content
+  if (!content) throw new Error(`File ${GIST_FILE} vuoto nel Gist`)
+
+  const remote = JSON.parse(content)
+  const local  = collectData()
+
+  // Merge entries per id (unione senza duplicati)
+  const entriesById = {}
+  ;[...(local.glicolog_v2 || []), ...(remote.glicolog_v2 || [])].forEach(e => {
+    if (e?.id) entriesById[e.id] = e
+  })
+
+  // Merge steps per data (il remote vince in caso di conflitto)
+  const stepsByDate = {}
+  ;[...(local.gl_steps || []), ...(remote.gl_steps || [])].forEach(s => {
+    if (s?.date) stepsByDate[s.date] = s
+  })
+
+  // Merge fooddb per chiave (unione, il remote vince)
+  const fooddb = { ...(local.glicolog_fooddb7 || {}), ...(remote.glicolog_fooddb7 || {}) }
+
+  const merged = {
+    glicolog_v2:      Object.values(entriesById),
+    glicolog_cfg6:    remote.glicolog_cfg6 || local.glicolog_cfg6,
+    gl_steps:         Object.values(stepsByDate),
+    glicolog_fooddb7: fooddb,
+    exported_at:      new Date().toISOString(),
+    version:          '2'
+  }
+
+  // Salva il merged localmente
+  localStorage.setItem('glicolog_v2',      JSON.stringify(merged.glicolog_v2))
+  localStorage.setItem('glicolog_cfg6',    JSON.stringify(merged.glicolog_cfg6))
+  localStorage.setItem('gl_steps',         JSON.stringify(merged.gl_steps))
+  localStorage.setItem('glicolog_fooddb7', JSON.stringify(merged.glicolog_fooddb7))
+
+  // Push del merged su Gist
+  const body = {
+    description: 'GlicoLog — backup dati',
+    public: false,
+    files: { [GIST_FILE]: { content: JSON.stringify(merged) } }
+  }
+  const result = await ghFetch(`https://api.github.com/gists/${gistId}`, { method: 'PATCH', body: JSON.stringify(body) })
+  localStorage.setItem(SYNC_KEY, new Date().toISOString())
+  return result
 }
