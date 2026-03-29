@@ -44,26 +44,26 @@
 
     <!-- Direzionalità -->
     <div class="fr">
-      <span class="fl">Direzionalità ↗↘</span>
+      <span class="fl">Sta salendo o scendendo?</span>
       <TrendSelector v-model="form.trend" />
     </div>
 
     <!-- Contesto sport -->
     <div class="fr">
-      <span class="fl">Contesto sport</span>
+      <span class="fl">Stai facendo sport oggi?</span>
       <label class="tog-sw">
         <input type="checkbox" v-model="form.sport" />
         <span class="tog-track"><span class="tog-thumb"></span></span>
-        <span class="tog-lbl">{{ form.sport ? 'Attivo' : 'Non attivo' }}</span>
+        <span class="tog-lbl">{{ form.sport ? 'Sì' : 'No' }}</span>
       </label>
     </div>
     <template v-if="form.sport">
       <div class="fr">
-        <span class="fl">Quando mangi rispetto allo sport?</span>
+        <span class="fl">Mangi prima o dopo lo sport?</span>
         <SegmentControl v-model="form.sportTiming" :options="sportTimingOptions" />
       </div>
       <div class="fr">
-        <span class="fl">Tipo di attività</span>
+        <span class="fl">Che tipo di sport?</span>
         <SegmentControl v-model="form.sportType" :options="sportTypeOptions" />
       </div>
     </template>
@@ -130,8 +130,8 @@ const sportTimingOptions = [
   { value: 'after',  label: 'Dopo' },
 ]
 const sportTypeOptions = [
-  { value: 'aerobico',   label: 'Aerobico' },
-  { value: 'anaerobico', label: 'Anaerobico' },
+  { value: 'aerobico',   label: 'Corsa / Bici / Nuoto' },
+  { value: 'anaerobico', label: 'Pesi / HIIT' },
 ]
 
 // Fattore sport: aerobico abbassa la glicemia → riduce il bolo
@@ -202,29 +202,30 @@ const boloUnits = computed(() => {
   return Math.max(0, Math.round(bolo * 2) / 2)
 })
 
-// Etichetta che spiega gli aggiustamenti applicati al bolo
+// Etichetta che spiega in chiaro gli aggiustamenti applicati al bolo
 const boloLabel = computed(() => {
   const tf = trendFactor(form.value.trend)
   const sf = form.value.sport
     ? (SPORT_FACTORS[`${form.value.sportType}-${form.value.sportTiming}`] ?? 1.00)
     : 1.00
   const parts = []
-  if (tf !== 1.00) {
-    const pct = Math.round((tf - 1) * 100)
-    parts.push(`trend ${pct > 0 ? '+' : ''}${pct}%`)
-  }
-  if (sf !== 1.00) {
-    const pct = Math.round((sf - 1) * 100)
-    parts.push(`sport ${pct}%`)
-  }
+
+  if (tf === 1.20) parts.push('📈 glicemia in forte salita')
+  else if (tf === 1.10) parts.push('↗️ glicemia in salita')
+  else if (tf === 0.90) parts.push('↘️ glicemia in discesa')
+  else if (tf === 0.80) parts.push('📉 glicemia in forte discesa')
+
+  if (sf === 0.80) parts.push('🏃 sport dopo il pasto' )
+  else if (sf === 0.90) parts.push('🏃 dopo lo sport')
+
   const cfg = cfgStore.cfg
   if (form.value.glic && cfg.fsi) {
     const targetMin = cfg.targetMin || 80
     const targetMax = cfg.targetMax || 180
-    if (form.value.glic > targetMax) parts.push('+ correzione iper')
-    else if (form.value.glic < targetMin) parts.push('ridotto (glic. bassa)')
+    if (form.value.glic > targetMax) parts.push('📈 glicemia sopra il range')
+    else if (form.value.glic < targetMin) parts.push('⬇️ glicemia bassa')
   }
-  return parts.length ? 'Bolo calcolato · ' + parts.join(', ') : 'Bolo suggerito dai carboidrati'
+  return parts.length ? 'Aggiustato per: ' + parts.join(', ') : 'Insulina suggerita per i carboidrati'
 })
 
 function addRow() { form.value.foodRows.push(defaultRow()) }

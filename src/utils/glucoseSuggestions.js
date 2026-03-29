@@ -1,15 +1,13 @@
 /**
  * Glucose suggestion logic — informational only, no medical advice.
- * All outputs are general trend-based hints, not clinical guidance.
  */
 
-// Percentage multipliers to apply to food bolus based on trend direction
 export const TREND_FACTORS = {
-  '⬆': 1.20, // steep rise  → +20%
-  '↗': 1.10, // moderate rise → +10%
-  '→': 1.00, // flat → no change
-  '↘': 0.90, // moderate drop → −10%
-  '⬇': 0.80, // steep drop → −20%
+  '⬆': 1.20,
+  '↗': 1.10,
+  '→': 1.00,
+  '↘': 0.90,
+  '⬇': 0.80,
 }
 
 export function trendFactor(trend) {
@@ -26,70 +24,50 @@ export function trendDir(trend) {
 }
 
 /**
- * Suggestion for standalone glucose reading (no meal context).
- * Returns { type: 'warn'|'info', msg: string } or null.
+ * Suggerimento per misurazione senza pasto.
  */
 export function glucoseOnlySuggestion(glic, trend, cfg) {
   if (!glic) return null
   const { targetMin = 80, targetMax = 180 } = cfg
   const dir = trendDir(trend)
 
-  if (glic < 70) return null // handled by the existing hypo alert
+  if (glic < 70) return null // gestito dall'alert ipo esistente
 
   if (glic < targetMin) {
     if (dir === 'down' || dir === 'steep-down') {
-      return {
-        type: 'warn',
-        msg: `Glicemia sotto il target (${glic} mg/dL) e in discesa: considera di assumere una piccola quantità di carboidrati rapidi (es. succo, zucchero) per prevenire un calo ulteriore.`,
-      }
+      return { type: 'warn', msg: `📉 Sotto il target e in calo — prendi qualcosa di dolce subito (succo, zucchero, caramelle).` }
     }
-    return {
-      type: 'warn',
-      msg: `Glicemia sotto il target (${glic} mg/dL): valuta se assumere una piccola quota di carboidrati per riportarla nel range.`,
-    }
+    return { type: 'warn', msg: `⬇️ Sotto il target — valuta se prendere qualcosa di dolce per tornare nel range.` }
   }
 
   if (glic <= targetMax) {
     if (dir === 'steep-down') {
-      return {
-        type: 'warn',
-        msg: `Glicemia ${glic} mg/dL ma in discesa rapida: rischio di uscire dal range. Considera uno spuntino preventivo con carboidrati rapidi.`,
-      }
+      return { type: 'warn', msg: `📉 Sta scendendo velocemente — rischio di uscire dal range. Tieni d'occhio e valuta uno spuntino.` }
     }
     if (dir === 'down') {
-      return {
-        type: 'info',
-        msg: `Glicemia ${glic} mg/dL nel range ma in discesa: monitora l'andamento. Se il calo dovesse continuare, valuta un piccolo spuntino.`,
-      }
+      return { type: 'info', msg: `↘️ In lieve calo — nessuna azione urgente, ma continua a monitorare.` }
     }
-    if (dir === 'steep-up' || dir === 'up') {
-      return {
-        type: 'info',
-        msg: `Glicemia ${glic} mg/dL nel range ma in salita: monitora nelle prossime rilevazioni per verificare che non superi il target.`,
-      }
+    if (dir === 'steep-up') {
+      return { type: 'info', msg: `📈 Sta salendo velocemente — controlla nelle prossime misurazioni.` }
+    }
+    if (dir === 'up') {
+      return { type: 'info', msg: `↗️ In lieve salita — monitora che non superi il tuo target.` }
     }
     return null
   }
 
-  // glic > targetMax
+  // sopra targetMax
   if (dir === 'steep-up' || dir === 'up') {
-    return {
-      type: 'warn',
-      msg: `Glicemia ${glic} mg/dL (sopra target) e in ulteriore salita: l'andamento merita attenzione. Valuta con il tuo professionista.`,
-    }
+    return { type: 'warn', msg: `📈 Già alta e continua a salire — parla con il tuo medico o genitore.` }
   }
   if (dir === 'steep-down' || dir === 'down') {
-    return {
-      type: 'info',
-      msg: `Glicemia ${glic} mg/dL (sopra target) ma in discesa: il trend è favorevole. Continua a monitorare.`,
-    }
+    return { type: 'info', msg: `↘️ Alta ma sta scendendo — buon segno! Continua a monitorare.` }
   }
   return null
 }
 
 /**
- * Suggestion for PanelGlicemia when the reading is in a sport context.
- * Returns { type: 'warn'|'info', msg: string } or null.
+ * Suggerimento sport nella schermata glicemia.
  */
 export function sportGlicSuggestion(glic, trend, timing, sportType, cfg) {
   if (!glic || !timing || !sportType) return null
@@ -97,89 +75,53 @@ export function sportGlicSuggestion(glic, trend, timing, sportType, cfg) {
   const dir = trendDir(trend)
 
   if (timing === 'before' && sportType === 'aerobico') {
-    if (glic < 70) return null // hypo alert handles this
+    if (glic < 70) return null
     if (glic <= 140) {
-      return {
-        type: 'warn',
-        msg: `Glicemia di ${glic} mg/dL prima di sport aerobico: è consigliabile assumere una piccola quota di carboidrati rapidi (es. frutta, succo) per mantenere un livello adeguato durante l'esercizio e prevenire un calo.`,
-      }
+      return { type: 'warn', msg: `🍌 Glicemia a ${glic} mg/dL prima di correre o pedalare — mangia qualcosa di dolce (banana, succo) per non rischiare un calo durante l'attività.` }
     }
     if (glic > targetMax && fsi) {
       const normalCorr = Math.max(0.5, Math.round(((glic - targetMin) / fsi) * 2) / 2)
       const reducedCorr = Math.max(0.5, Math.round(normalCorr * 0.5 * 2) / 2)
-      return {
-        type: 'info',
-        msg: `Glicemia elevata (${glic} mg/dL) prima di sport aerobico: l'attività tenderà ad abbassarla. Correzione normale ~${normalCorr}U → considera ~${reducedCorr}U (circa −50%) per evitare un calo durante l'esercizio. Valuta sempre con il tuo professionista.`,
-      }
+      return { type: 'info', msg: `🏃 Alta prima dello sport — l'attività la abbasserà da sola. Se correggi, usa circa ${reducedCorr}U invece di ${normalCorr}U (metà dose). Chiedi conferma al tuo medico.` }
     }
     if (glic > targetMax) {
-      return {
-        type: 'info',
-        msg: `Glicemia elevata (${glic} mg/dL) prima di sport aerobico: considera di ridurre la correzione del 40–50% rispetto al normale, perché l'attività fisica contribuirà ad abbassarla.`,
-      }
+      return { type: 'info', msg: `🏃 Alta prima dello sport aerobico — l'attività aiuterà ad abbassarla. Considera di correggere meno del solito.` }
     }
     if (dir === 'down' || dir === 'steep-down') {
-      return {
-        type: 'warn',
-        msg: `Glicemia ${glic} mg/dL e in discesa prima dello sport aerobico: considera una piccola quota di carboidrati preventivi per evitare un calo durante l'esercizio.`,
-      }
+      return { type: 'warn', msg: `📉 In calo prima dello sport — prendi qualcosa di dolce per evitare un'ipoglicemia durante l'allenamento.` }
     }
     return null
   }
 
   if (timing === 'before' && sportType === 'anaerobico') {
     if (glic > targetMax) {
-      return {
-        type: 'warn',
-        msg: `Glicemia elevata (${glic} mg/dL) prima di attività anaerobica (pesi/HIIT): questo tipo di esercizio può aumentare ulteriormente la glicemia per effetto ormonale. Valuta con cautela prima di correggere.`,
-      }
+      return { type: 'warn', msg: `⚠️ Alta prima di pesi/HIIT — questo sport può farla salire ancora. Attenzione prima di correggere con insulina.` }
     }
     if (dir === 'up' || dir === 'steep-up') {
-      return {
-        type: 'info',
-        msg: `Glicemia ${glic} mg/dL in salita prima di attività anaerobica: i pesi e il HIIT possono amplificare l'aumento per effetto delle catecolamine. Monitora dopo l'allenamento.`,
-      }
+      return { type: 'info', msg: `↗️ In salita prima di pesi/HIIT — l'allenamento potrebbe farla salire ancora di più. Monitora dopo.` }
     }
-    return {
-      type: 'info',
-      msg: `L'attività anaerobica (pesi, HIIT) può causare un temporaneo aumento della glicemia per effetto dello stress ormonale. Monitora nella fase di recupero.`,
-    }
+    return { type: 'info', msg: `💪 Pesi e HIIT possono far salire la glicemia temporaneamente. Controlla dopo l'allenamento.` }
   }
 
   if (timing === 'after' && sportType === 'aerobico') {
     if (glic < targetMin) {
-      return {
-        type: 'warn',
-        msg: `Glicemia bassa (${glic} mg/dL) dopo sport aerobico: assumi carboidrati rapidi per riportarla nel range. L'effetto ipoglicemizzante dell'esercizio può continuare nelle ore successive.`,
-      }
+      return { type: 'warn', msg: `🍬 Bassa dopo lo sport — prendi subito qualcosa di dolce (succo, zucchero). L'effetto può durare ancora ore.` }
     }
     if (dir === 'steep-down' || dir === 'down') {
-      return {
-        type: 'warn',
-        msg: `Glicemia ${glic} mg/dL in discesa dopo sport aerobico: l'effetto ipoglicemizzante può proseguire. Considera uno spuntino preventivo per evitare un calo tardivo.`,
-      }
+      return { type: 'warn', msg: `📉 Ancora in calo dopo lo sport — l'effetto dell'attività dura ore. Considera uno spuntino preventivo.` }
     }
     if (glic > targetMax) {
-      return {
-        type: 'info',
-        msg: `Glicemia alta (${glic} mg/dL) dopo sport aerobico: può essere una risposta allo stress fisico o all'adrenalina. Monitora nelle prossime ore prima di correggere.`,
-      }
+      return { type: 'info', msg: `⚡ Alta dopo lo sport aerobico — può capitare per lo stress fisico. Aspetta un po' e ricontrolla prima di correggere.` }
     }
     return null
   }
 
   if (timing === 'after' && sportType === 'anaerobico') {
     if (glic > targetMax) {
-      return {
-        type: 'info',
-        msg: `Glicemia alta (${glic} mg/dL) dopo attività anaerobica: risposta fisiologica frequente al rilascio di adrenalina durante lo sforzo. Non è necessariamente una vera iperglicemia — monitora nel tempo prima di correggere.`,
-      }
+      return { type: 'info', msg: `⚡ Alta dopo pesi/HIIT — è normale! Il corpo rilascia ormoni che alzano la glicemia durante lo sforzo. Monitora nei prossimi minuti.` }
     }
     if (dir === 'steep-down' || dir === 'down') {
-      return {
-        type: 'warn',
-        msg: `Glicemia in calo dopo attività anaerobica: un calo tardivo è possibile anche con i pesi. Tieni sotto controllo nelle ore successive all'allenamento.`,
-      }
+      return { type: 'warn', msg: `📉 In calo dopo l'allenamento — meno comune con i pesi, ma tienila d'occhio nelle prossime ore.` }
     }
     return null
   }

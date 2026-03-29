@@ -248,6 +248,20 @@ body.light-mode .panel { background: rgba(255,255,255,.97) }
 .glic-inline-alert { border-radius: 10px; padding: 10px 12px; font-size: .8rem; margin: 0 0 10px; line-height: 1.4 }
 .glic-inline-low  { background: rgba(255,82,82,.12); border: 1px solid rgba(255,82,82,.35); color: var(--r) }
 .glic-inline-high { background: rgba(255,171,64,.08); border: 1px solid rgba(255,171,64,.25); color: var(--o) }
+/* Alert inline con pulsante azione */
+.glic-action-alert { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-radius: 12px; padding: 12px 14px; margin: 0 0 10px; }
+.glic-action-low  { background: rgba(255,82,82,.12); border: 1px solid rgba(255,82,82,.35) }
+.glic-action-high { background: rgba(255,171,64,.10); border: 1px solid rgba(255,171,64,.30) }
+.gaa-body  { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0 }
+.gaa-icon  { font-size: 1.5rem; line-height: 1; flex-shrink: 0 }
+.gaa-title { font-size: .85rem; font-weight: 700; color: var(--txt); line-height: 1.2 }
+.gaa-sub   { font-size: .72rem; color: var(--txt2); margin-top: 2px }
+.glic-action-low  .gaa-title { color: var(--r) }
+.glic-action-high .gaa-title { color: var(--o) }
+.gaa-btn { flex-shrink: 0; border: none; border-radius: 8px; font-family: var(--sans); font-weight: 700; font-size: .78rem; padding: 8px 12px; cursor: pointer; transition: opacity .12s }
+.glic-action-low  .gaa-btn { background: var(--r); color: #fff }
+.glic-action-high .gaa-btn { background: var(--o); color: #000 }
+.gaa-btn:active { opacity: .8 }
 /* Glucose suggestion hints */
 .hint-box  { border-radius: 10px; padding: 10px 12px; font-size: .8rem; margin: 0 0 10px; line-height: 1.5 }
 .hint-info { background: rgba(64,196,255,.07); border: 1px solid rgba(64,196,255,.22); color: var(--b) }

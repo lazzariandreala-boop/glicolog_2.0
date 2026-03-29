@@ -34,23 +34,23 @@
         <span class="sport-kcal-val">~{{ estimatedKcal }} kcal</span>
       </div>
       <div style="font-size:.65rem;color:var(--txt2);margin-top:3px;line-height:1.4">
-        ⚡ L'attività fisica può abbassare la glicemia nelle ore successive.
+        ⚡ Lo sport aerobico (corsa, bici) tende ad abbassare la glicemia. I pesi/HIIT possono farla salire temporaneamente.
       </div>
     </div>
 
     <!-- Glicemia pre/post -->
     <div class="fr">
-      <span class="fl">🩸 Glicemia (mg/dL)</span>
+      <span class="fl">🩸 Glicemia attuale (mg/dL)</span>
       <input class="fi big" type="number" inputmode="numeric" v-model.number="form.glic" placeholder="—" />
     </div>
 
     <div class="fr">
-      <span class="fl">Direzionalità ↗↘</span>
+      <span class="fl">Sta salendo o scendendo?</span>
       <TrendSelector v-model="form.trend" />
     </div>
 
     <div class="fr">
-      <span class="fl">Quando hai misurato?</span>
+      <span class="fl">Misuri prima o dopo lo sport?</span>
       <SegmentControl v-model="form.timing" :options="timingOptions" />
     </div>
 
