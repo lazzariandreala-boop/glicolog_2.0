@@ -38,8 +38,8 @@
             <button class="hg-btn hg-s"     @click="appStore.openPanelFor('spuntino')">
               <span class="hg-ico">🍎</span><span class="hg-lbl">Spuntino</span>
             </button>
-            <button class="hg-btn hg-glic"  @click="appStore.openPanelFor('glicemia')">
-              <span class="hg-ico">🩸</span><span class="hg-lbl">Glicemia</span>
+            <button class="hg-btn hg-sport" @click="appStore.openPanelFor('sport')">
+              <span class="hg-ico">🏃</span><span class="hg-lbl">Sport</span>
             </button>
             <button class="hg-btn hg-ins"   @click="appStore.openPanelFor('insulina')">
               <span class="hg-ico">💉</span><span class="hg-lbl">Insulina</span>
@@ -49,6 +49,9 @@
             </button>
             <button class="hg-btn hg-aperi" @click="appStore.openPanelFor('aperitivi')">
               <span class="hg-ico">🥂</span><span class="hg-lbl">Aperitivo</span>
+            </button>
+            <button class="hg-btn hg-glic hg-full" @click="appStore.openPanelFor('glicemia')">
+              <span class="hg-ico">🩸</span><span class="hg-lbl">Glicemia</span>
             </button>
           </div>
           <div class="desk-section-lbl" style="margin-top:8px">Andamento glicemia</div>
@@ -159,8 +162,8 @@
         <button class="hg-btn hg-s"     @click="appStore.openPanelFor('spuntino')">
           <span class="hg-ico">🍎</span><span class="hg-lbl">Spuntino</span>
         </button>
-        <button class="hg-btn hg-glic"  @click="appStore.openPanelFor('glicemia')">
-          <span class="hg-ico">🩸</span><span class="hg-lbl">Glicemia</span>
+        <button class="hg-btn hg-sport" @click="appStore.openPanelFor('sport')">
+          <span class="hg-ico">🏃</span><span class="hg-lbl">Sport</span>
         </button>
         <button class="hg-btn hg-ins"   @click="appStore.openPanelFor('insulina')">
           <span class="hg-ico">💉</span><span class="hg-lbl">Insulina</span>
@@ -170,6 +173,9 @@
         </button>
         <button class="hg-btn hg-aperi" @click="appStore.openPanelFor('aperitivi')">
           <span class="hg-ico">🥂</span><span class="hg-lbl">Aperitivo</span>
+        </button>
+        <button class="hg-btn hg-glic hg-full" @click="appStore.openPanelFor('glicemia')">
+          <span class="hg-ico">🩸</span><span class="hg-lbl">Glicemia</span>
         </button>
       </div>
     </div>

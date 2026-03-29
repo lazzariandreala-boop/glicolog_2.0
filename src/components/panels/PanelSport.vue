@@ -38,6 +38,27 @@
       </div>
     </div>
 
+    <!-- Glicemia pre/post -->
+    <div class="fr">
+      <span class="fl">🩸 Glicemia (mg/dL)</span>
+      <input class="fi big" type="number" inputmode="numeric" v-model.number="form.glic" placeholder="—" />
+    </div>
+
+    <div class="fr">
+      <span class="fl">Direzionalità ↗↘</span>
+      <TrendSelector v-model="form.trend" />
+    </div>
+
+    <div class="fr">
+      <span class="fl">Quando hai misurato?</span>
+      <SegmentControl v-model="form.timing" :options="timingOptions" />
+    </div>
+
+    <!-- Suggerimento sport -->
+    <div v-if="sportHint" :class="['hint-box', sportHint.type === 'warn' ? 'hint-warn' : 'hint-info']">
+      {{ sportHint.msg }}
+    </div>
+
     <div class="fr">
       <span class="fl">Note (opzionale)</span>
       <input class="fi" type="text" v-model="form.note" placeholder="es. palestra, outdoor…" />
@@ -57,6 +78,9 @@ import { useAppStore } from '@/stores/app.js'
 import { useEntriesStore, useConfigStore } from '@/stores/index.js'
 import PanelBase from './PanelBase.vue'
 import TimeRow from '@/components/shared/TimeRow.vue'
+import TrendSelector from '@/components/shared/TrendSelector.vue'
+import SegmentControl from '@/components/shared/SegmentControl.vue'
+import { sportGlicSuggestion } from '@/utils/glucoseSuggestions.js'
 
 const app = useAppStore()
 const entriesStore = useEntriesStore()
@@ -136,8 +160,25 @@ const sportGroups = {
   ],
 }
 
-const form = ref({ sportKey: '', duration: 60, note: '', ts: app.defaultTs() })
+const timingOptions = [
+  { value: 'before', label: 'Prima' },
+  { value: 'after',  label: 'Dopo' },
+]
+
+// In PanelSport il tipo sport si deduce dal sportKey (pesi/crossfit = anaerobico, resto = aerobico)
+function sportTypeFromKey(key) {
+  if (!key) return 'aerobico'
+  const name = key.split('|')[0].toLowerCase()
+  return (name.includes('pesi') || name.includes('crossfit')) ? 'anaerobico' : 'aerobico'
+}
+
+const form = ref({ sportKey: '', duration: 60, glic: null, trend: '→', timing: 'before', note: '', ts: app.defaultTs() })
 const estimatedKcal = ref(0)
+
+const sportHint = computed(() => {
+  const sportType = sportTypeFromKey(form.value.sportKey)
+  return sportGlicSuggestion(form.value.glic, form.value.trend, form.value.timing, sportType, cfgStore.cfg)
+})
 
 function calcKcal() {
   if (!form.value.sportKey) { estimatedKcal.value = 0; return }
@@ -151,8 +192,8 @@ watch(() => app.openPanel, (p) => {
   if (p === 'sport') {
     const e = app.editEntry
     isEdit.value = !!e
-    if (e) form.value = { sportKey: e.sportKey||'', duration: e.duration||60, note: e.note||'', ts: e.ts }
-    else form.value = { sportKey: '', duration: 60, note: '', ts: app.defaultTs() }
+    if (e) form.value = { sportKey: e.sportKey||'', duration: e.duration||60, glic: e.glic||null, trend: e.trend||'→', timing: e.timing||'before', note: e.note||'', ts: e.ts }
+    else form.value = { sportKey: '', duration: 60, glic: null, trend: '→', timing: 'before', note: '', ts: app.defaultTs() }
     calcKcal()
   }
 })
@@ -168,6 +209,9 @@ function save() {
     sportKey: form.value.sportKey,
     duration: form.value.duration,
     kcal: estimatedKcal.value,
+    glic: form.value.glic || null,
+    trend: form.value.trend,
+    timing: form.value.timing,
     note: form.value.note,
     ts: form.value.ts
   }

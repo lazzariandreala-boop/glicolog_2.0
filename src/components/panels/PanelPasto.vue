@@ -48,12 +48,32 @@
       <TrendSelector v-model="form.trend" />
     </div>
 
+    <!-- Contesto sport -->
+    <div class="fr">
+      <span class="fl">Contesto sport</span>
+      <label class="tog-sw">
+        <input type="checkbox" v-model="form.sport" />
+        <span class="tog-track"><span class="tog-thumb"></span></span>
+        <span class="tog-lbl">{{ form.sport ? 'Attivo' : 'Non attivo' }}</span>
+      </label>
+    </div>
+    <template v-if="form.sport">
+      <div class="fr">
+        <span class="fl">Quando mangi rispetto allo sport?</span>
+        <SegmentControl v-model="form.sportTiming" :options="sportTimingOptions" />
+      </div>
+      <div class="fr">
+        <span class="fl">Tipo di attività</span>
+        <SegmentControl v-model="form.sportType" :options="sportTypeOptions" />
+      </div>
+    </template>
+
     <!-- Bolo suggerito -->
     <div class="bolo-box g" :class="{ on: boloUnits > 0 }">
       <div class="bolo-ico">💉</div>
       <div class="bolo-body">
         <div class="bolo-val">{{ boloUnits.toFixed(1) }}U</div>
-        <div class="bolo-lbl">Bolo suggerito dai carboidrati</div>
+        <div class="bolo-lbl">{{ boloLabel }}</div>
       </div>
       <div class="bolo-edit">
         <input type="number" inputmode="decimal" step="0.5" min="0" placeholder="U" v-model.number="form.boloOverride" />
@@ -91,6 +111,7 @@ import SegmentControl from '@/components/shared/SegmentControl.vue'
 import TrendSelector from '@/components/shared/TrendSelector.vue'
 import FoodRow from '@/components/shared/FoodRow.vue'
 import TimeRow from '@/components/shared/TimeRow.vue'
+import { trendFactor } from '@/utils/glucoseSuggestions.js'
 
 const app = useAppStore()
 const entriesStore = useEntriesStore()
@@ -104,6 +125,22 @@ const mealTypes = [
   { value: 'Pranzo', label: 'Pranzo' },
   { value: 'Cena', label: 'Cena' },
 ]
+const sportTimingOptions = [
+  { value: 'before', label: 'Prima' },
+  { value: 'after',  label: 'Dopo' },
+]
+const sportTypeOptions = [
+  { value: 'aerobico',   label: 'Aerobico' },
+  { value: 'anaerobico', label: 'Anaerobico' },
+]
+
+// Fattore sport: aerobico abbassa la glicemia → riduce il bolo
+const SPORT_FACTORS = {
+  'aerobico-before':   0.80, // −20%: si mangia prima dello sport aerobico
+  'aerobico-after':    0.90, // −10%: si mangia dopo sport aerobico
+  'anaerobico-before': 1.00, // nessun cambio
+  'anaerobico-after':  1.00, // nessun cambio
+}
 
 const defaultRow = () => ({ id: Date.now() + Math.random(), name: '', grams: 0, c100: 0, p100: 0, g100: 0, f100: 0, k100: 0, isDrink: false, macros: { c: 0, p: 0, g: 0, f: 0, k: 0 } })
 
@@ -111,6 +148,7 @@ const form = ref({
   mealType: 'Pranzo',
   foodRows: [defaultRow()],
   glic: null, trend: '→',
+  sport: false, sportTiming: 'before', sportType: 'aerobico',
   boloOverride: null,
   mC: null, mP: null, mG: null, mF: null,
   ts: app.defaultTs()
@@ -139,16 +177,54 @@ const totals = computed(() => {
 // Carboidrati effettivi per il bolo (da food rows o da mC se inserito manualmente)
 const effCarbs = computed(() => form.value.mC || totals.value.c || 0)
 
-// Bolo suggerito
+// Bolo suggerito — include aggiustamento per trend, sport e livello glicemico
 const boloUnits = computed(() => {
   const cfg = cfgStore.cfg
   if (!effCarbs.value || !cfg.ic) return 0
-  let bolo = effCarbs.value / cfg.ic
-  if (form.value.glic && cfg.targetMax && cfg.fsi) {
-    const excess = form.value.glic - cfg.targetMax
-    if (excess > 0) bolo += excess / cfg.fsi
+
+  const tf = trendFactor(form.value.trend)
+  const sf = form.value.sport
+    ? (SPORT_FACTORS[`${form.value.sportType}-${form.value.sportTiming}`] ?? 1.00)
+    : 1.00
+
+  let bolo = (effCarbs.value / cfg.ic) * tf * sf
+
+  if (form.value.glic && cfg.fsi) {
+    const targetMin = cfg.targetMin || 80
+    const targetMax = cfg.targetMax || 180
+    if (form.value.glic > targetMax) {
+      bolo += (form.value.glic - targetMin) / cfg.fsi
+    } else if (form.value.glic < targetMin) {
+      bolo = Math.max(0, bolo - (targetMin - form.value.glic) / cfg.fsi * 0.5)
+    }
   }
-  return Math.round(bolo * 2) / 2
+
+  return Math.max(0, Math.round(bolo * 2) / 2)
+})
+
+// Etichetta che spiega gli aggiustamenti applicati al bolo
+const boloLabel = computed(() => {
+  const tf = trendFactor(form.value.trend)
+  const sf = form.value.sport
+    ? (SPORT_FACTORS[`${form.value.sportType}-${form.value.sportTiming}`] ?? 1.00)
+    : 1.00
+  const parts = []
+  if (tf !== 1.00) {
+    const pct = Math.round((tf - 1) * 100)
+    parts.push(`trend ${pct > 0 ? '+' : ''}${pct}%`)
+  }
+  if (sf !== 1.00) {
+    const pct = Math.round((sf - 1) * 100)
+    parts.push(`sport ${pct}%`)
+  }
+  const cfg = cfgStore.cfg
+  if (form.value.glic && cfg.fsi) {
+    const targetMin = cfg.targetMin || 80
+    const targetMax = cfg.targetMax || 180
+    if (form.value.glic > targetMax) parts.push('+ correzione iper')
+    else if (form.value.glic < targetMin) parts.push('ridotto (glic. bassa)')
+  }
+  return parts.length ? 'Bolo calcolato · ' + parts.join(', ') : 'Bolo suggerito dai carboidrati'
 })
 
 function addRow() { form.value.foodRows.push(defaultRow()) }
@@ -177,7 +253,8 @@ watch(() => app.openPanel, (p) => {
       form.value = {
         mealType: e.mealType || 'Pranzo',
         foodRows: e.foodRows?.length ? e.foodRows.map(r => ({ ...defaultRow(), ...r })) : [defaultRow()],
-        glic: e.glic || null, trend: e.trend || '',
+        glic: e.glic || null, trend: e.trend || '→',
+        sport: e.sport || false, sportTiming: e.sportTiming || 'before', sportType: e.sportType || 'aerobico',
         boloOverride: e.bolo || null,
         mC: e.carbs || null, mP: e.protein || null, mG: e.fat || null, mF: e.fiber || null,
         ts: e.ts
@@ -185,7 +262,7 @@ watch(() => app.openPanel, (p) => {
     } else {
       const h = new Date().getHours()
       const mt = h < 11 ? 'Colazione' : h < 15 ? 'Pranzo' : 'Cena'
-      form.value = { mealType: mt, foodRows: [defaultRow()], glic: null, trend: '→', boloOverride: null, mC: null, mP: null, mG: null, mF: null, ts: app.defaultTs() }
+      form.value = { mealType: mt, foodRows: [defaultRow()], glic: null, trend: '→', sport: false, sportTiming: 'before', sportType: 'aerobico', boloOverride: null, mC: null, mP: null, mG: null, mF: null, ts: app.defaultTs() }
     }
   }
 })
@@ -198,19 +275,22 @@ function save() {
   if (!hasFood && !form.value.mealType) { app.toast('Aggiungi almeno un alimento'); return }
 
   const entry = {
-    type:      'pasto',
-    mealType:  form.value.mealType,
-    foodRows:  form.value.foodRows.filter(r => r.name),
-    food:      form.value.foodRows.map(r => r.name).filter(Boolean).join(', '),
-    glic:      form.value.glic,
-    trend:     form.value.trend,
-    bolo:      form.value.boloOverride ?? boloUnits.value,
-    carbs:     getCarbs(),
-    protein:   form.value.mP ?? totals.value.p,
-    fat:       form.value.mG ?? totals.value.g,
-    fiber:     form.value.mF ?? totals.value.f,
-    kcal:      getKcal(),
-    ts:        form.value.ts
+    type:        'pasto',
+    mealType:    form.value.mealType,
+    foodRows:    form.value.foodRows.filter(r => r.name),
+    food:        form.value.foodRows.map(r => r.name).filter(Boolean).join(', '),
+    glic:        form.value.glic,
+    trend:       form.value.trend,
+    sport:       form.value.sport || false,
+    sportTiming: form.value.sport ? form.value.sportTiming : null,
+    sportType:   form.value.sport ? form.value.sportType : null,
+    bolo:        form.value.boloOverride ?? boloUnits.value,
+    carbs:       getCarbs(),
+    protein:     form.value.mP ?? totals.value.p,
+    fat:         form.value.mG ?? totals.value.g,
+    fiber:       form.value.mF ?? totals.value.f,
+    kcal:        getKcal(),
+    ts:          form.value.ts
   }
 
   if (isEdit.value && app.editEntry) {

@@ -248,6 +248,12 @@ body.light-mode .panel { background: rgba(255,255,255,.97) }
 .glic-inline-alert { border-radius: 10px; padding: 10px 12px; font-size: .8rem; margin: 0 0 10px; line-height: 1.4 }
 .glic-inline-low  { background: rgba(255,82,82,.12); border: 1px solid rgba(255,82,82,.35); color: var(--r) }
 .glic-inline-high { background: rgba(255,171,64,.08); border: 1px solid rgba(255,171,64,.25); color: var(--o) }
+/* Glucose suggestion hints */
+.hint-box  { border-radius: 10px; padding: 10px 12px; font-size: .8rem; margin: 0 0 10px; line-height: 1.5 }
+.hint-info { background: rgba(64,196,255,.07); border: 1px solid rgba(64,196,255,.22); color: var(--b) }
+.hint-warn { background: rgba(255,171,64,.08); border: 1px solid rgba(255,171,64,.28); color: var(--o) }
+.hint-reduce { background: rgba(206,147,216,.08); border: 1px solid rgba(206,147,216,.28); color: var(--p) }
+.hint-increase { background: rgba(255,171,64,.08); border: 1px solid rgba(255,171,64,.28); color: var(--o) }
 .fi.big { font-size: 2rem; font-weight: 500; font-family: var(--mono); text-align: center; padding: 16px }
 /* Elementi full-width dentro .fr: vanno sempre su riga propria */
 .fr > .food-rows, .fr > .add-food-row, .fr > .food-rows-total,
@@ -423,6 +429,18 @@ body.light-mode .bsave { background: linear-gradient(135deg, #059669 0%, #047857
 /* ── SPORT KCAL ── */
 .sport-kcal-box { display: none; background: rgba(41,182,246,.07); border: 1px solid rgba(41,182,246,.2); border-radius: 12px; padding: 12px 14px; margin-bottom: 14px }
 .sport-kcal-box.on { display: block }
+/* Toggle switch (iOS-style) */
+.tog-sw { display: flex; align-items: center; gap: 10px; cursor: pointer }
+.tog-sw input { display: none }
+.tog-track { width: 46px; height: 27px; background: var(--bdr2); border-radius: 14px; position: relative; flex-shrink: 0; transition: background .22s }
+.tog-thumb { position: absolute; top: 3px; left: 3px; width: 21px; height: 21px; background: #fff; border-radius: 50%; box-shadow: 0 1px 5px rgba(0,0,0,.35); transition: transform .22s }
+.tog-sw input:checked + .tog-track { background: #03a9f4 }
+.tog-sw input:checked + .tog-track .tog-thumb { transform: translateX(19px) }
+.tog-lbl { font-size: .82rem; color: var(--txt2); transition: color .2s }
+.tog-sw input:checked ~ .tog-lbl { color: #03a9f4 }
+/* Glicemia full-width row */
+.glic-main-row { flex-direction: column; align-items: stretch; gap: 8px }
+.glic-main-input { width: 100% !important; font-size: 2.4rem !important; padding: 18px !important; text-align: center }
 .sport-kcal-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px }
 .sport-kcal-lbl { font-size: .75rem; color: var(--txt2) }
 .sport-kcal-val { font-family: var(--mono); font-size: .95rem; color: #29b6f6 }
@@ -558,6 +576,8 @@ body.light-mode .bnav { background: rgba(255,255,255,.92) }
 .hg-ins   { background: linear-gradient(145deg, rgba(206,147,216,.18) 0%, rgba(171,71,188,.04) 100%); border-color: rgba(206,147,216,.34); color: var(--p); box-shadow: 0 4px 20px rgba(206,147,216,.12) }
 .hg-cor   { background: linear-gradient(145deg, rgba(255,171,64,.15) 0%, rgba(255,109,0,.04) 100%);  border-color: rgba(255,171,64,.32);  color: var(--o);  box-shadow: 0 4px 20px rgba(255,171,64,.10) }
 .hg-aperi { background: linear-gradient(145deg, rgba(128,203,196,.17) 0%, rgba(0,150,136,.04) 100%); border-color: rgba(128,203,196,.34); color: var(--nut); box-shadow: 0 4px 20px rgba(128,203,196,.12) }
+.hg-sport { background: linear-gradient(145deg, rgba(3,169,244,.17) 0%, rgba(2,136,209,.04) 100%);  border-color: rgba(3,169,244,.34);  color: #03a9f4; box-shadow: 0 4px 20px rgba(3,169,244,.12) }
+.hg-full  { grid-column: 1 / -1 }
 
 /* ── QUICK ADD SHEET ── */
 .qa-sheet {
