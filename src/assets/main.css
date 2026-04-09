@@ -642,158 +642,265 @@ body.light-mode .qa-sheet { background: rgba(255,255,255,.97) }
 .qa-title { text-align: center; font-size: .72rem; font-weight: 800; color: var(--txt2); letter-spacing: .8px; text-transform: uppercase; padding: 10px 0 2px }
 
 /* ═══════════════════════════════════════════════════════════════
-   DESKTOP LAYOUT  ≥ 768px
-   Sidebar nav · Centered content · Modali centrate
+   DESKTOP LAYOUT  ≥ 900px
+   Native app layout: sidebar + topbar + content area
    ═══════════════════════════════════════════════════════════════ */
-@media (min-width: 768px) {
 
-  /* ── Sposta il contenuto a destra della sidebar ── */
-  body { margin-left: 220px }
+/* ── DESKTOP APP SHELL ── */
+.desk-app {
+  display: flex;
+  width: 100vw;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--bg);
+}
 
-  /* ── SIDEBAR (was bottom navbar) ── */
-  .bnav {
-    position: fixed;
-    left: 0; top: 0; bottom: 0; right: auto;
-    width: 220px; height: 100dvh;
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: stretch;
-    padding: 0 12px 24px;
-    border-right: 1px solid var(--bdr);
-    border-top: none;
-    gap: 3px;
-    background: rgba(6,9,14,.96);
-    backdrop-filter: blur(20px) saturate(1.4);
-    -webkit-backdrop-filter: blur(20px) saturate(1.4);
-  }
-  body.light-mode .bnav { background: rgba(255,255,255,.96); border-right-color: rgba(0,0,0,.1) }
-  body.light-mode .bnav::before { border-bottom-color: rgba(0,0,0,.08) }
-  body.light-mode .bnav-tab:hover { background: rgba(0,0,0,.04) }
-  body.light-mode .bnav-tab.active { background: rgba(5,150,105,.1) }
+/* ── SIDEBAR ── */
+.desk-sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg2);
+  border-right: 1px solid var(--bdr);
+  padding: 0 10px 16px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+.desk-sidebar::-webkit-scrollbar { display: none }
 
-  /* Logo nella sidebar */
-  .bnav::before {
-    content: 'GLICOLOG';
-    display: block;
-    font-family: var(--disp);
-    font-size: 1.55rem;
-    letter-spacing: 1.5px;
-    color: var(--txt);
-    padding: 28px 6px 18px;
-    border-bottom: 1px solid var(--bdr);
-    margin-bottom: 14px;
-    flex-shrink: 0;
-  }
+body.light-mode .desk-sidebar { background: rgba(255,255,255,.96); border-right-color: rgba(0,0,0,.1) }
 
-  /* Tab come voci di menu orizzontali */
-  .bnav-tab {
-    flex-direction: row;
-    justify-content: flex-start;
-    gap: 11px;
-    padding: 11px 14px;
-    border-radius: 12px;
-    flex: 0 0 auto;
-    width: 100%;
-    font-size: .88rem;
-    transition: background .15s, color .15s;
-  }
-  .bnav-tab:hover { background: rgba(255,255,255,.04) }
-  .bnav-tab.active {
-    background: rgba(0,230,118,.1);
-    color: var(--g);
-    text-shadow: none;
-  }
-  .bnav-tab.active::before { display: none }
-  .bnav-ico { font-size: 1.1rem; width: 22px; text-align: center; flex-shrink: 0 }
-  .bnav-lbl {
-    font-size: .88rem;
-    text-transform: none;
-    letter-spacing: 0;
-    font-weight: 600;
-    line-height: 1;
-  }
+/* Logo */
+.desk-logo {
+  font-family: var(--disp);
+  font-size: 1.85rem;
+  letter-spacing: 1.5px;
+  padding: 26px 8px 18px;
+  border-bottom: 1px solid var(--bdr);
+  margin-bottom: 14px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.desk-logo em {
+  font-style: normal;
+  background: linear-gradient(90deg, #00e676, #40c4ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 
-  /* Pulsante + in fondo alla sidebar */
-  .bnav-add {
-    width: 100%;
-    border-radius: 14px;
-    height: 48px;
-    font-size: 1.15rem;
-    margin-top: auto;
-    margin-bottom: 0;
-    flex-shrink: 0;
-    order: 99;
-    box-shadow: 0 4px 18px rgba(0,230,118,.35);
-  }
+/* Nav groups */
+.desk-nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
+.desk-nav-label {
+  font-size: .56rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--txt2);
+  padding: 6px 10px 4px;
+  opacity: .7;
+}
 
-  /* ── Header: si adatta alla content area ── */
-  .hdr { padding-left: 28px; padding-right: 28px }
+/* Nav buttons (tabs) */
+.desk-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: none;
+  color: var(--txt3);
+  font-family: var(--sans);
+  font-size: .88rem;
+  font-weight: 500;
+  padding: 9px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background .15s, color .15s;
+}
+.desk-nav-btn:hover { background: var(--card); color: var(--txt) }
+.desk-nav-btn.on { background: rgba(0,230,118,.12); color: var(--g); font-weight: 600 }
+body.light-mode .desk-nav-btn:hover { background: rgba(0,0,0,.05) }
+body.light-mode .desk-nav-btn.on { background: rgba(5,150,105,.1); color: var(--g) }
 
-  /* ── DayNavigation full-width sopra le colonne ── */
-  .daynav { max-width: 1440px; margin: 0 auto; padding: 18px 28px 14px }
-  .strip  { padding: 0 }
+/* Action buttons */
+.desk-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: none;
+  color: var(--txt2);
+  font-family: var(--sans);
+  font-size: .84rem;
+  font-weight: 400;
+  padding: 8px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background .15s, color .15s;
+}
+.desk-action-btn:hover { background: var(--card); color: var(--txt) }
+body.light-mode .desk-action-btn:hover { background: rgba(0,0,0,.05) }
 
-  /* ── Layout 2 colonne ── */
-  .desk-layout {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
-    max-width: 1440px;
-    margin: 0 auto;
-    padding: 0 28px 48px;
-    align-items: start;
-  }
-  .desk-col { min-width: 0 }
-  /* Colonna destra sticky: resta in vista mentre si scrolla la sinistra */
-  .desk-col-sticky {
-    position: sticky;
-    top: 72px; /* sotto l'header */
-    max-height: calc(100dvh - 90px);
-    overflow-y: auto;
-    overflow-x: hidden;
-    scrollbar-width: thin;
-    scrollbar-color: var(--bdr2) transparent;
-  }
-  .desk-col-sticky::-webkit-scrollbar { width: 4px }
-  .desk-col-sticky::-webkit-scrollbar-thumb { background: var(--bdr2); border-radius: 2px }
+/* Icon inside nav/action btns */
+.desk-nav-ico { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0; line-height: 1 }
 
-  /* Etichetta sezione desktop */
-  .desk-section-lbl {
-    font-size: .65rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: .8px;
-    color: var(--txt2);
-    padding: 14px 0 8px 2px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .desk-section-lbl::after { content: ''; flex: 1; height: 1px; background: var(--bdr) }
+/* Sidebar footer */
+.desk-sidebar-footer {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid var(--bdr);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.desk-footer-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: none;
+  color: var(--txt2);
+  font-family: var(--sans);
+  font-size: .82rem;
+  padding: 8px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: background .15s, color .15s;
+}
+.desk-footer-btn:hover { background: var(--card); color: var(--txt) }
+.desk-footer-btn:disabled { opacity: .5; cursor: default }
+body.light-mode .desk-footer-btn:hover { background: rgba(0,0,0,.05) }
 
-  /* Aggiustamenti padding interni in colonna */
-  .tl        { padding: 0 0 60px }
-  .tab-pad   { padding: 0 }
-  .sw        { padding: 0 }
-  .nut-sec   { padding: 0 0 12px }
-  .sum-sec   { padding: 0 }
+@keyframes desk-spin { to { transform: rotate(360deg) } }
+.desk-footer-btn.spinning .desk-nav-ico { display: inline-block; animation: desk-spin .7s linear infinite }
 
-  /* 4 colonne per summary boxes su desktop */
-  .sum-grid { grid-template-columns: repeat(4, 1fr) }
-  .sum-wide { grid-column: auto }
+/* ── MAIN AREA ── */
+.desk-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
 
-  /* Tab content mobile: nascosta su desktop (usata da v-else) */
-  .tab-content { max-width: unset; padding-bottom: 48px }
+/* Topbar */
+.desk-topbar {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 0 28px;
+  height: 60px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--bdr);
+  background: var(--bg2);
+}
+body.light-mode .desk-topbar { background: rgba(255,255,255,.96) }
 
-  /* ── Pannelli come modali centrate ── */
+.desk-topbar-title {
+  font-family: var(--sans);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--txt);
+  flex: 1;
+}
+
+.desk-topbar-daynav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.desk-dn-btn {
+  background: var(--card);
+  border: 1px solid var(--bdr);
+  color: var(--txt3);
+  font-size: 1rem;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s;
+}
+.desk-dn-btn:hover:not(:disabled) { background: var(--card2); color: var(--txt) }
+.desk-dn-btn:disabled { opacity: .35; cursor: default }
+.desk-dn-lbl {
+  font-family: var(--mono);
+  font-size: .82rem;
+  color: var(--txt);
+  min-width: 120px;
+  text-align: center;
+}
+.desk-oggi {
+  font-size: .62rem;
+  font-weight: 700;
+  color: var(--g);
+  letter-spacing: .5px;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+
+.desk-topbar-clock {
+  font-family: var(--mono);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--txt);
+  letter-spacing: 1px;
+  min-width: 48px;
+  text-align: right;
+}
+
+/* Content area */
+.desk-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 24px 32px 40px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--bdr2) transparent;
+}
+.desk-content::-webkit-scrollbar { width: 5px }
+.desk-content::-webkit-scrollbar-thumb { background: var(--bdr2); border-radius: 3px }
+
+/* Adjustments inside desk-content */
+.desk-content .tl { padding-bottom: 24px }
+.desk-content .tab-pad { padding: 0 }
+.desk-content .nut-sec { padding-bottom: 12px }
+.desk-content .sum-sec { padding: 0 }
+.desk-content .strip { padding: 0 0 12px }
+.desk-content .sum-grid { grid-template-columns: repeat(4, 1fr) }
+.desk-content .sum-wide { grid-column: auto }
+
+/* ── PANELS AS CENTERED MODALS (desktop) ── */
+@media (min-width: 900px) {
+  /* Fix: inactive panels must not intercept clicks */
+  .panel { pointer-events: none }
+  .panel.on { pointer-events: auto }
+
   .panel {
-    left: calc(220px + (100vw - 220px) / 2);
+    left: 50%;
     right: auto;
     bottom: auto;
-    top: 4vh;
-    width: min(580px, calc(100vw - 260px));
+    top: 5vh;
+    width: min(600px, calc(100vw - 280px));
     border-radius: 20px;
-    max-height: 92vh;
+    max-height: 90vh;
     transform: translateX(-50%) translateY(24px) scale(.97);
     opacity: 0;
     transition: transform .28s cubic-bezier(.32,.72,0,1), opacity .22s;
@@ -803,17 +910,17 @@ body.light-mode .qa-sheet { background: rgba(255,255,255,.97) }
     opacity: 1;
   }
   .panel.panel-profilo {
-    width: min(780px, calc(100vw - 260px));
+    width: min(800px, calc(100vw - 280px));
   }
   .ph { cursor: default; pointer-events: none }
 
-  /* ── Quick add sheet come modale centrata ── */
+  /* Quick add sheet as centered modal */
   .qa-sheet {
-    left: calc(220px + (100vw - 220px) / 2);
+    left: 50%;
     right: auto;
     bottom: auto;
     top: 8vh;
-    width: min(600px, calc(100vw - 260px));
+    width: min(620px, calc(100vw - 280px));
     border-radius: 20px;
     max-height: 84vh;
     overflow-y: auto;
@@ -828,28 +935,18 @@ body.light-mode .qa-sheet { background: rgba(255,255,255,.97) }
   .qa-handle { display: none }
   .qa-title { padding: 18px 0 6px; font-size: .75rem }
 
-  /* Home grid — 3 colonne su desktop */
+  /* Home grid — 3 cols on desktop */
   .home-grid {
     grid-template-columns: 1fr 1fr 1fr;
     gap: 14px;
     padding: 8px 20px 16px;
   }
 
-  /* Bottone Storico/Export: side by side più ampi */
-  .gchart-btns { gap: 12px }
-
-  /* Box inserimento rapido nella colonna destra desktop */
-  .desk-quick-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    padding: 0 0 4px;
-  }
-  .desk-quick-grid .hg-btn { padding: 20px 8px 16px; border-radius: 16px }
-  .desk-quick-grid .hg-ico { font-size: 1.6rem }
-  .desk-quick-grid .hg-lbl { font-size: .88rem }
-
-  /* Overlay: copre tutto inclusa sidebar */
+  /* Overlay covers full window */
   .ov { left: 0 }
+
+  /* Gchart buttons */
+  .gchart-btns { gap: 12px }
 }
 
 /* ── MOOD / STATO D'ANIMO ── */

@@ -1,143 +1,128 @@
 <template>
   <div>
-    <!-- HEADER -->
-    <AppHeader />
 
-    <!-- INSTALL BANNER PWA -->
-    <div class="ibar" :class="{ on: showInstallBanner }">
-      <div class="ibar-t">
-        <strong>Installa GlicoLog</strong>
-        Aggiungi all'home screen per un'esperienza ottimale
-      </div>
-      <button class="ibar-b" @click="doInstall">Installa</button>
-      <button class="ibar-x" @click="showInstallBanner = false">✕</button>
-    </div>
-
-    <!-- NAVIGAZIONE GIORNO (globale) -->
-    <DayNavigation />
-
-    <!-- ═══════════════════════════════
-         DESKTOP LAYOUT (2 colonne)
-         ═══════════════════════════════ -->
+    <!-- ═══════════════════════════════════════════
+         DESKTOP APP  ≥ 900px
+         Sidebar + Topbar + Content area
+         ═══════════════════════════════════════════ -->
     <template v-if="isDesktop">
+      <div class="desk-app">
 
-      <!-- GRUPPO 1: TimeLine + Grafici -->
-      <div v-if="desktopGroup === 'main'" class="desk-layout">
-        <!-- Colonna sinistra: TimeLine -->
-        <div class="desk-col">
-          <SummaryStrip />
-          <Timeline />
-        </div>
-        <!-- Colonna destra: inserimento rapido + grafici (sticky) -->
-        <div class="desk-col desk-col-sticky" style="margin-top: 36px !important;">
-          <div class="desk-section-lbl">Inserimento rapido</div>
-          <div class="home-grid desk-quick-grid">
-            <button class="hg-btn hg-p"     @click="appStore.openPanelFor('pasto')">
-              <span class="hg-ico">🍽️</span><span class="hg-lbl">Pasto</span>
-            </button>
-            <button class="hg-btn hg-s"     @click="appStore.openPanelFor('spuntino')">
-              <span class="hg-ico">🍎</span><span class="hg-lbl">Spuntino</span>
-            </button>
-            <button class="hg-btn hg-sport" @click="appStore.openPanelFor('sport')">
-              <span class="hg-ico">🏃</span><span class="hg-lbl">Sport</span>
-            </button>
-            <button class="hg-btn hg-ins"   @click="appStore.openPanelFor('insulina')">
-              <span class="hg-ico">💉</span><span class="hg-lbl">Insulina</span>
-            </button>
-            <button class="hg-btn hg-cor"   @click="appStore.openPanelFor('correzione')">
-              <span class="hg-ico">🍬</span><span class="hg-lbl">Correzione</span>
-            </button>
-            <button class="hg-btn hg-aperi" @click="appStore.openPanelFor('aperitivi')">
-              <span class="hg-ico">🥂</span><span class="hg-lbl">Aperitivo</span>
-            </button>
-            <button class="hg-btn hg-glic hg-full" @click="appStore.openPanelFor('glicemia')">
-              <span class="hg-ico">🩸</span><span class="hg-lbl">Glicemia</span>
+        <!-- ── Sidebar ── -->
+        <aside class="desk-sidebar">
+          <!-- Logo -->
+          <div class="desk-logo">Glic<em>o</em>Log</div>
+
+          <!-- Navigazione viste -->
+          <div class="desk-nav-group">
+            <div class="desk-nav-label">VISTE</div>
+            <button v-for="t in deskTabs" :key="t.v"
+                    class="desk-nav-btn" :class="{ on: activeTab === t.v }"
+                    @click="activeTab = t.v">
+              <span class="desk-nav-ico">{{ t.ico }}</span>{{ t.lbl }}
             </button>
           </div>
-          <div class="desk-section-lbl" style="margin-top:8px">Andamento glicemia</div>
-          <div class="tab-pad">
-            <GlucoseChart />
+
+          <!-- Inserimento rapido -->
+          <div class="desk-nav-group">
+            <div class="desk-nav-label">INSERIMENTO RAPIDO</div>
+            <button v-for="a in deskActions" :key="a.panel"
+                    class="desk-action-btn"
+                    @click="appStore.openPanelFor(a.panel)">
+              <span class="desk-nav-ico">{{ a.ico }}</span>{{ a.lbl }}
+            </button>
+          </div>
+
+          <!-- Footer sidebar -->
+          <div class="desk-sidebar-footer">
+            <button class="desk-footer-btn" @click="appStore.openPanelFor('profilo')">
+              <span class="desk-nav-ico">⚙️</span> Profilo & Config
+            </button>
+            <button class="desk-footer-btn" :class="{ spinning: deskSyncing }" @click="deskSyncGist" :disabled="deskSyncing">
+              <span class="desk-nav-ico">🔄</span> Sincronizza Gist
+            </button>
+            <button class="desk-footer-btn" @click="appStore.setTheme(appStore.theme === 'dark' ? 'light' : 'dark')">
+              <span class="desk-nav-ico">{{ appStore.theme === 'dark' ? '☀️' : '🌙' }}</span>
+              {{ appStore.theme === 'dark' ? 'Modalità chiara' : 'Modalità scura' }}
+            </button>
+          </div>
+        </aside>
+
+        <!-- ── Main area ── -->
+        <div class="desk-main">
+
+          <!-- Topbar -->
+          <div class="desk-topbar">
+            <div class="desk-topbar-title">{{ deskCurrentTitle }}</div>
+            <div class="desk-topbar-daynav">
+              <button class="desk-dn-btn" @click="appStore.dayOffset--">‹</button>
+              <span class="desk-dn-lbl">{{ deskDateLabel }}<span v-if="appStore.dayOffset === 0" class="desk-oggi"> OGGI</span></span>
+              <button class="desk-dn-btn" :disabled="appStore.dayOffset >= 0" @click="appStore.dayOffset++">›</button>
+            </div>
+            <div class="desk-topbar-clock">{{ deskTime }}</div>
+          </div>
+
+          <!-- Content -->
+          <div class="desk-content">
+            <template v-if="activeTab === 'entries'">
+              <SummaryStrip />
+              <Timeline />
+            </template>
+            <GlucoseChart    v-else-if="activeTab === 'stats'" />
+            <MonthlyCalendar v-else-if="activeTab === 'calendar'" />
+            <HealthSummary   v-else-if="activeTab === 'health'" />
+            <template v-else-if="activeTab === 'nutrition'">
+              <NutritionSection />
+              <SummaryBoxes />
+            </template>
           </div>
         </div>
       </div>
-
-      <!-- GRUPPO 2: Mensile + Nutrizione -->
-      <div v-else class="desk-layout">
-        <!-- Colonna sinistra: calendario -->
-        <div class="desk-col">
-          <div class="desk-section-lbl">Riepilogo mensile</div>
-          <div class="tab-pad">
-            <MonthlyCalendar />
-          </div>
-        </div>
-        <!-- Colonna destra: nutrizione -->
-        <div class="desk-col desk-col-sticky">
-          <div class="desk-section-lbl">Nutrizione del giorno</div>
-          <NutritionSection />
-          <SummaryBoxes />
-        </div>
-      </div>
-
     </template>
 
-    <!-- ═══════════════════════════════
-         MOBILE LAYOUT (tab singolo)
-         ═══════════════════════════════ -->
+    <!-- ═══════════════════════════════════════════
+         MOBILE LAYOUT  < 900px
+         ═══════════════════════════════════════════ -->
     <template v-else>
-      <div class="tab-content">
+      <!-- HEADER mobile -->
+      <AppHeader />
 
-        <!-- TIMELINE -->
+      <!-- INSTALL BANNER PWA -->
+      <div class="ibar" :class="{ on: showInstallBanner }">
+        <div class="ibar-t">
+          <strong>Installa GlicoLog</strong>
+          Aggiungi all'home screen per un'esperienza ottimale
+        </div>
+        <button class="ibar-b" @click="doInstall">Installa</button>
+        <button class="ibar-x" @click="showInstallBanner = false">✕</button>
+      </div>
+
+      <!-- NAVIGAZIONE GIORNO -->
+      <DayNavigation />
+
+      <!-- TAB CONTENT -->
+      <div class="tab-content">
         <template v-if="activeTab === 'entries'">
           <SummaryStrip />
           <Timeline />
         </template>
-
-        <!-- STATISTICHE -->
         <template v-else-if="activeTab === 'stats'">
-          <div class="tab-pad">
-            <GlucoseChart />
-          </div>
+          <div class="tab-pad"><GlucoseChart /></div>
         </template>
-
-        <!-- RIEPILOGO MENSILE -->
         <template v-else-if="activeTab === 'calendar'">
-          <div class="tab-pad">
-            <MonthlyCalendar />
-          </div>
+          <div class="tab-pad"><MonthlyCalendar /></div>
         </template>
-
-        <!-- NUTRIZIONE -->
         <template v-else-if="activeTab === 'nutrition'">
           <NutritionSection />
           <SummaryBoxes />
         </template>
-
-        <!-- SALUTE / GOOGLE FIT -->
         <template v-else-if="activeTab === 'health'">
-          <div class="tab-pad">
-            <HealthSummary />
-          </div>
+          <div class="tab-pad"><HealthSummary /></div>
         </template>
-
       </div>
-    </template>
 
-    <!-- BOTTOM NAVBAR / SIDEBAR -->
-    <nav class="bnav">
-
-      <!-- Desktop: 2 voci di gruppo -->
-      <template v-if="isDesktop">
-        <button class="bnav-tab" :class="{ active: desktopGroup === 'main' }" @click="desktopGroup = 'main'">
-          <span class="bnav-ico">📋</span><span class="bnav-lbl">TimeLine & Grafici</span>
-        </button>
-        <button class="bnav-tab" :class="{ active: desktopGroup === 'overview' }" @click="desktopGroup = 'overview'">
-          <span class="bnav-ico">📅</span><span class="bnav-lbl">Mensile & Nutrizione</span>
-        </button>
-        <button class="bnav-add" @click="showQuickAdd = true">+</button>
-      </template>
-
-      <!-- Mobile: 5 tab senza + (FAB separato) -->
-      <template v-else>
+      <!-- BOTTOM NAVBAR -->
+      <nav class="bnav">
         <button class="bnav-tab" :class="{ active: activeTab === 'entries' }" @click="activeTab = 'entries'">
           <span class="bnav-ico">📋</span><span class="bnav-lbl">TimeLine</span>
         </button>
@@ -153,46 +138,31 @@
         <button class="bnav-tab" :class="{ active: activeTab === 'nutrition' }" @click="activeTab = 'nutrition'">
           <span class="bnav-ico">🥗</span><span class="bnav-lbl">Nutrizione</span>
         </button>
-      </template>
+      </nav>
 
-    </nav>
+      <!-- FAB + fisso in basso a destra -->
+      <button class="fab-add" @click="showQuickAdd = true" aria-label="Inserimento rapido">+</button>
 
-    <!-- FAB + (mobile only) -->
-    <button v-if="!isDesktop" class="fab-add" @click="showQuickAdd = true" aria-label="Inserimento rapido">+</button>
+      <!-- QUICK ADD SHEET -->
+      <div class="qa-sheet" :class="{ on: showQuickAdd }">
+        <div class="qa-handle"></div>
+        <div class="qa-title">Inserimento rapido</div>
+        <div class="home-grid">
+          <button class="hg-btn hg-p"     @click="appStore.openPanelFor('pasto')"><span class="hg-ico">🍽️</span><span class="hg-lbl">Pasto</span></button>
+          <button class="hg-btn hg-s"     @click="appStore.openPanelFor('spuntino')"><span class="hg-ico">🍎</span><span class="hg-lbl">Spuntino</span></button>
+          <button class="hg-btn hg-sport" @click="appStore.openPanelFor('sport')"><span class="hg-ico">🏃</span><span class="hg-lbl">Sport</span></button>
+          <button class="hg-btn hg-ins"   @click="appStore.openPanelFor('insulina')"><span class="hg-ico">💉</span><span class="hg-lbl">Insulina</span></button>
+          <button class="hg-btn hg-cor"   @click="appStore.openPanelFor('correzione')"><span class="hg-ico">🍬</span><span class="hg-lbl">Correzione</span></button>
+          <button class="hg-btn hg-aperi" @click="appStore.openPanelFor('aperitivi')"><span class="hg-ico">🥂</span><span class="hg-lbl">Aperitivo</span></button>
+          <button class="hg-btn hg-glic hg-full" @click="appStore.openPanelFor('glicemia')"><span class="hg-ico">🩸</span><span class="hg-lbl">Glicemia</span></button>
+        </div>
+      </div>
+    </template>
 
-    <!-- OVERLAY (pannelli + quick add) -->
+    <!-- OVERLAY (pannelli + quick add) — sempre presente -->
     <div class="ov" :class="{ on: appStore.openPanel || showQuickAdd }" @click="closeOverlay()" />
 
-    <!-- QUICK ADD SHEET -->
-    <div class="qa-sheet" :class="{ on: showQuickAdd }">
-      <div class="qa-handle"></div>
-      <div class="qa-title">Inserimento rapido</div>
-      <div class="home-grid">
-        <button class="hg-btn hg-p"     @click="appStore.openPanelFor('pasto')">
-          <span class="hg-ico">🍽️</span><span class="hg-lbl">Pasto</span>
-        </button>
-        <button class="hg-btn hg-s"     @click="appStore.openPanelFor('spuntino')">
-          <span class="hg-ico">🍎</span><span class="hg-lbl">Spuntino</span>
-        </button>
-        <button class="hg-btn hg-sport" @click="appStore.openPanelFor('sport')">
-          <span class="hg-ico">🏃</span><span class="hg-lbl">Sport</span>
-        </button>
-        <button class="hg-btn hg-ins"   @click="appStore.openPanelFor('insulina')">
-          <span class="hg-ico">💉</span><span class="hg-lbl">Insulina</span>
-        </button>
-        <button class="hg-btn hg-cor"   @click="appStore.openPanelFor('correzione')">
-          <span class="hg-ico">🍬</span><span class="hg-lbl">Correzione</span>
-        </button>
-        <button class="hg-btn hg-aperi" @click="appStore.openPanelFor('aperitivi')">
-          <span class="hg-ico">🥂</span><span class="hg-lbl">Aperitivo</span>
-        </button>
-        <button class="hg-btn hg-glic hg-full" @click="appStore.openPanelFor('glicemia')">
-          <span class="hg-ico">🩸</span><span class="hg-lbl">Glicemia</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- PANNELLI (bottom sheets / modali) -->
+    <!-- PANNELLI (sempre presenti per entrambi i layout) -->
     <PanelPasto />
     <PanelSpuntino />
     <PanelGlicemia />
@@ -213,11 +183,12 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useAppStore } from '@/stores/app.js'
 import { useStepsStore } from '@/stores/index.js'
-import { getDK } from '@/data/constants.js'
-import { getToken, getGistId, exportToGist } from '@/utils/gistSync.js'
+import { getDK, getDF, DI, MI, p2 } from '@/data/constants.js'
+import { getToken, getGistId, syncWithGist, exportToGist } from '@/utils/gistSync.js'
+import { useHealthSyncStore } from '@/stores/healthSync.js'
 
 // Components
 import AppHeader        from '@/components/AppHeader.vue'
@@ -244,36 +215,80 @@ import PanelAperitivi   from '@/components/panels/PanelAperitivi.vue'
 import PanelProfilo     from '@/components/panels/PanelProfilo.vue'
 import PanelHealthSync  from '@/components/panels/PanelHealthSync.vue'
 
-import { useHealthSyncStore } from '@/stores/healthSync.js'
-
-const appStore   = useAppStore()
-const hsStore    = useHealthSyncStore()
+const appStore = useAppStore()
+const hsStore  = useHealthSyncStore()
 
 const activeTab         = ref('entries')
-const desktopGroup      = ref('main')
 const showInstallBanner = ref(false)
 const showQuickAdd      = ref(false)
+const deskSyncing       = ref(false)
 
-// Rilevamento desktop
-const mq = window.matchMedia('(min-width: 768px)')
+// Rilevamento desktop (≥ 900px)
+const mq        = window.matchMedia('(min-width: 900px)')
 const isDesktop = ref(mq.matches)
 mq.addEventListener('change', e => { isDesktop.value = e.matches })
 
-// Chiudi quick add quando si apre un pannello
-watch(() => appStore.openPanel, val => { if (val) showQuickAdd.value = false })
+// ── Desktop: clock ────────────────────────────────────────────
+const deskTime = ref('')
+function tickDesk() {
+  const n = new Date()
+  deskTime.value = `${p2(n.getHours())}:${p2(n.getMinutes())}`
+}
+let clockInterval = null
 
-// Auto-save su Gist ad ogni cambio di data (se configurato)
-watch(() => appStore.dayOffset, async () => {
-  if (!getToken() || !getGistId()) return
-  try { await exportToGist() } catch { /* silent */ }
-})
+// ── Desktop: nav data ─────────────────────────────────────────
+const deskTabs = [
+  { v: 'entries',   ico: '📋', lbl: 'TimeLine' },
+  { v: 'stats',     ico: '📊', lbl: 'Grafici glicemia' },
+  { v: 'calendar',  ico: '📅', lbl: 'Riepilogo mensile' },
+  { v: 'health',    ico: '🏃', lbl: 'Attività & Salute' },
+  { v: 'nutrition', ico: '🥗', lbl: 'Nutrizione' },
+]
+const deskActions = [
+  { panel: 'glicemia',   ico: '🩸', lbl: 'Misura glicemia' },
+  { panel: 'pasto',      ico: '🍽️', lbl: 'Nuovo pasto' },
+  { panel: 'insulina',   ico: '💉', lbl: 'Insulina' },
+  { panel: 'sport',      ico: '🏃', lbl: 'Attività sportiva' },
+  { panel: 'correzione', ico: '🍬', lbl: 'Correzione ipo' },
+  { panel: 'spuntino',   ico: '🍎', lbl: 'Spuntino' },
+  { panel: 'aperitivi',  ico: '🥂', lbl: 'Aperitivo / Alcool' },
+]
 
+const deskCurrentTitle = computed(() => deskTabs.find(t => t.v === activeTab.value)?.lbl ?? '')
+const deskDateLabel    = computed(() => getDF(appStore.dayOffset))
+
+// ── Desktop: Gist sync ────────────────────────────────────────
+async function deskSyncGist() {
+  if (!getToken() || !getGistId()) {
+    appStore.toast('⚠️ Token e Gist ID richiesti — configurali nel Profilo')
+    return
+  }
+  deskSyncing.value = true
+  try {
+    await syncWithGist()
+    appStore.toast('✅ Sync completato')
+    window.location.reload()
+  } catch (e) {
+    appStore.toast('❌ ' + e.message)
+  } finally {
+    deskSyncing.value = false
+  }
+}
+
+// ── Chiudi overlay ─────────────────────────────────────────────
 function closeOverlay() {
   if (appStore.openPanel) appStore.closePanel()
   else showQuickAdd.value = false
 }
 
-// PWA Install
+watch(() => appStore.openPanel, val => { if (val) showQuickAdd.value = false })
+
+watch(() => appStore.dayOffset, async () => {
+  if (!getToken() || !getGistId()) return
+  try { await exportToGist() } catch {}
+})
+
+// ── PWA Install ────────────────────────────────────────────────
 let deferredInstallPrompt = null
 function doInstall() {
   if (!deferredInstallPrompt) return
@@ -282,7 +297,7 @@ function doInstall() {
   showInstallBanner.value = false
 }
 
-// Health Connect (auto-sync, Android only)
+// ── Health Connect (Capacitor native) ─────────────────────────
 async function autoSyncHealthConnect() {
   try {
     if (!window.Capacitor?.Plugins?.HealthConnect) return
@@ -291,11 +306,10 @@ async function autoSyncHealthConnect() {
     try { avail = await HC.checkAvailability() } catch { return }
     if (!avail || avail.availability !== 'Available') return
     const permRes = await HC.checkHealthPermissions({ permissions: [{ accessType: 'read', recordType: 'Steps' }] })
-    const granted = permRes?.results?.every(r => r.granted)
-    if (!granted) return
+    if (!permRes?.results?.every(r => r.granted)) return
     const today = new Date(); today.setHours(0, 0, 0, 0)
-    const end = new Date(); end.setHours(23, 59, 59, 999)
-    const res = await HC.readRecords({ type: 'Steps', timeRangeFilter: { operator: 'between', startTime: today.toISOString(), endTime: end.toISOString() } })
+    const end   = new Date(); end.setHours(23, 59, 59, 999)
+    const res   = await HC.readRecords({ type: 'Steps', timeRangeFilter: { operator: 'between', startTime: today.toISOString(), endTime: end.toISOString() } })
     if (res?.records?.length) {
       const total = res.records.reduce((s, r) => s + (r.count || r.steps || 0), 0)
       if (total > 0) useStepsStore().setDay(getDK(0), total)
@@ -304,14 +318,14 @@ async function autoSyncHealthConnect() {
 }
 
 onMounted(async () => {
+  tickDesk()
+  clockInterval = setInterval(tickDesk, 15000)
+
   window.addEventListener('beforeinstallprompt', e => {
-    e.preventDefault()
-    deferredInstallPrompt = e
-    showInstallBanner.value = true
+    e.preventDefault(); deferredInstallPrompt = e; showInstallBanner.value = true
   })
   window.addEventListener('appinstalled', () => {
-    showInstallBanner.value = false
-    deferredInstallPrompt = null
+    showInstallBanner.value = false; deferredInstallPrompt = null
     appStore.toast('✅ App installata!')
   })
 
@@ -320,23 +334,20 @@ onMounted(async () => {
     setTimeout(autoSyncHealthConnect, 2500)
   }
 
-  if ('serviceWorker' in navigator && !(window.Capacitor?.isNativePlatform())) {
+  if ('serviceWorker' in navigator && !window.Capacitor?.isNativePlatform()) {
     navigator.serviceWorker.register('/sw.js').catch(() => {})
   }
 
-  // ── Google Fit OAuth callback ─────────────────────────────────
-  // Dopo il redirect Google, la URL contiene ?code=...&state=...
+  // Google Fit OAuth callback
   const urlParams = new URLSearchParams(window.location.search)
   const code      = urlParams.get('code')
   const oauthErr  = urlParams.get('error')
 
   if (code && hsStore.isConfigured) {
-    // Pulisci URL senza ricaricare la pagina
     window.history.replaceState({}, document.title, window.location.pathname)
     try {
       await hsStore.handleCallback(code)
       appStore.toast('✅ Google Fit connesso!')
-      // Sync immediato dopo la connessione
       await hsStore.sync(30)
       appStore.toast('✅ Dati importati da Google Fit')
       activeTab.value = 'health'
@@ -350,4 +361,5 @@ onMounted(async () => {
   }
 })
 
+onUnmounted(() => { if (clockInterval) clearInterval(clockInterval) })
 </script>
