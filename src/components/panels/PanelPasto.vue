@@ -48,6 +48,22 @@
       <TrendSelector v-model="form.trend" />
     </div>
 
+    <!-- Stato d'animo -->
+    <div class="glic-mood-card">
+      <div class="glic-mood-lbl">😶 Stato d'animo</div>
+      <div class="mood-selector">
+        <button v-for="m in moodOptions" :key="m.value"
+                class="mood-btn" :class="{ on: form.mood === m.value }"
+                type="button" @click="form.mood = m.value">
+          <span class="mood-ico">{{ m.ico }}</span>
+          <span class="mood-lbl-sm">{{ m.label }}</span>
+        </button>
+      </div>
+    </div>
+    <div v-if="moodHint" :class="['hint-box', moodHint.type === 'warn' ? 'hint-warn' : 'hint-info']">
+      {{ moodHint.msg }}
+    </div>
+
     <!-- Contesto sport -->
     <div class="fr">
       <span class="fl">Stai facendo sport oggi?</span>
@@ -58,11 +74,15 @@
       </label>
     </div>
     <template v-if="form.sport">
+      <!-- Banner sport rilevato dalla giornata -->
+      <div v-if="todaySportEntries.length" class="hint-box hint-info" style="margin-bottom:0">
+        🏃 Attività rilevata oggi: <strong>{{ autoSportNames }}</strong> (~{{ autoSportKcal }} kcal) — tipo {{ autoSportType }} applicato automaticamente al bolo.
+      </div>
       <div class="fr">
         <span class="fl">Mangi prima o dopo lo sport?</span>
         <SegmentControl v-model="form.sportTiming" :options="sportTimingOptions" />
       </div>
-      <div class="fr">
+      <div class="fr" v-if="!todaySportEntries.length">
         <span class="fl">Che tipo di sport?</span>
         <SegmentControl v-model="form.sportType" :options="sportTypeOptions" />
       </div>
@@ -111,7 +131,8 @@ import SegmentControl from '@/components/shared/SegmentControl.vue'
 import TrendSelector from '@/components/shared/TrendSelector.vue'
 import FoodRow from '@/components/shared/FoodRow.vue'
 import TimeRow from '@/components/shared/TimeRow.vue'
-import { trendFactor } from '@/utils/glucoseSuggestions.js'
+import { trendFactor, moodFactor, moodGlicHint } from '@/utils/glucoseSuggestions.js'
+import { getDK } from '@/data/constants.js'
 
 const app = useAppStore()
 const entriesStore = useEntriesStore()
@@ -134,6 +155,14 @@ const sportTypeOptions = [
   { value: 'anaerobico', label: 'Pesi / HIIT' },
 ]
 
+const moodOptions = [
+  { value: 'calmo',      ico: '😊', label: 'Calmo' },
+  { value: 'euforico',   ico: '🤩', label: 'Euforico' },
+  { value: 'stressato',  ico: '😰', label: 'Stressato' },
+  { value: 'triste',     ico: '😔', label: 'Triste' },
+  { value: 'arrabbiato', ico: '😠', label: 'Arrabbiato' },
+]
+
 // Fattore sport: aerobico abbassa la glicemia → riduce il bolo
 const SPORT_FACTORS = {
   'aerobico-before':   0.80, // −20%: si mangia prima dello sport aerobico
@@ -148,6 +177,7 @@ const form = ref({
   mealType: 'Pranzo',
   foodRows: [defaultRow()],
   glic: null, trend: '→',
+  mood: 'calmo',
   sport: false, sportTiming: 'before', sportType: 'aerobico',
   boloOverride: null,
   mC: null, mP: null, mG: null, mF: null,
@@ -177,17 +207,52 @@ const totals = computed(() => {
 // Carboidrati effettivi per il bolo (da food rows o da mC se inserito manualmente)
 const effCarbs = computed(() => form.value.mC || totals.value.c || 0)
 
-// Bolo suggerito — include aggiustamento per trend, sport e livello glicemico
-const boloUnits = computed(() => {
+// Rilevamento automatico sport dalla giornata (da voci tipo 'sport' già salvate)
+const todaySportEntries = computed(() =>
+  entriesStore.entries.filter(e => {
+    if (e.type !== 'sport') return false
+    const d = new Date(e.ts)
+    const dk = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+    return dk === getDK(app.dayOffset)
+  })
+)
+const autoSportKcal = computed(() => todaySportEntries.value.reduce((s, e) => s + (e.kcal || 0), 0))
+const autoSportNames = computed(() => todaySportEntries.value.map(e => e.sport || '').filter(Boolean).join(', '))
+// Se tutte le attività sono anaerobiche → anaerobico, altrimenti aerobico domina
+const autoSportType = computed(() => {
+  if (!todaySportEntries.value.length) return null
+  const hasAerobic = todaySportEntries.value.some(e => {
+    const n = (e.sport || '').toLowerCase()
+    return !n.includes('pesi') && !n.includes('crossfit') && !n.includes('hiit')
+  })
+  return hasAerobic ? 'aerobico' : 'anaerobico'
+})
+
+// Hint stato d'animo nel contesto pasto
+const moodHint = computed(() => moodGlicHint(form.value.mood))
+
+// Bolo e label — watch esplicito per garantire reattività in tempo reale
+const boloUnits = ref(0)
+const boloLabel = ref('Insulina suggerita per i carboidrati')
+
+function _recomputeBolo() {
   const cfg = cfgStore.cfg
-  if (!effCarbs.value || !cfg.ic) return 0
+  if (!effCarbs.value || !cfg.ic) {
+    boloUnits.value = 0
+    boloLabel.value = 'Insulina suggerita per i carboidrati'
+    return
+  }
 
   const tf = trendFactor(form.value.trend)
+  const mf = moodFactor(form.value.mood)
+
+  // Sport: usa il tipo rilevato automaticamente se disponibile, altrimenti quello scelto manualmente
+  const effectiveSportType = (form.value.sport && autoSportType.value) ? autoSportType.value : form.value.sportType
   const sf = form.value.sport
-    ? (SPORT_FACTORS[`${form.value.sportType}-${form.value.sportTiming}`] ?? 1.00)
+    ? (SPORT_FACTORS[`${effectiveSportType}-${form.value.sportTiming}`] ?? 1.00)
     : 1.00
 
-  let bolo = (effCarbs.value / cfg.ic) * tf * sf
+  let bolo = (effCarbs.value / cfg.ic) * tf * sf * mf
 
   if (form.value.glic && cfg.fsi) {
     const targetMin = cfg.targetMin || 80
@@ -199,34 +264,46 @@ const boloUnits = computed(() => {
     }
   }
 
-  return Math.max(0, Math.round(bolo * 2) / 2)
-})
+  boloUnits.value = Math.max(0, Math.round(bolo * 2) / 2)
 
-// Etichetta che spiega in chiaro gli aggiustamenti applicati al bolo
-const boloLabel = computed(() => {
-  const tf = trendFactor(form.value.trend)
-  const sf = form.value.sport
-    ? (SPORT_FACTORS[`${form.value.sportType}-${form.value.sportTiming}`] ?? 1.00)
-    : 1.00
   const parts = []
-
-  if (tf === 1.20) parts.push('📈 glicemia in forte salita')
-  else if (tf === 1.10) parts.push('↗️ glicemia in salita')
-  else if (tf === 0.90) parts.push('↘️ glicemia in discesa')
-  else if (tf === 0.80) parts.push('📉 glicemia in forte discesa')
-
-  if (sf === 0.80) parts.push('🏃 sport dopo il pasto' )
-  else if (sf === 0.90) parts.push('🏃 dopo lo sport')
-
-  const cfg = cfgStore.cfg
+  if (tf === 1.20) parts.push('📈 in forte salita (+20%)')
+  else if (tf === 1.10) parts.push('↗️ in salita (+10%)')
+  else if (tf === 0.90) parts.push('↘️ in discesa (−10%)')
+  else if (tf === 0.80) parts.push('📉 in forte discesa (−20%)')
+  if (sf === 0.80) parts.push('🏃 sport dopo il pasto (−20%)')
+  else if (sf === 0.90) parts.push('🏃 dopo lo sport (−10%)')
+  if (mf === 1.15) parts.push('😠 arrabbiato (+15%)')
+  else if (mf === 1.10) parts.push('😰 stressato (+10%)')
+  else if (mf === 1.05) parts.push('😟 umore alterato (+5%)')
   if (form.value.glic && cfg.fsi) {
-    const targetMin = cfg.targetMin || 80
-    const targetMax = cfg.targetMax || 180
-    if (form.value.glic > targetMax) parts.push('📈 glicemia sopra il range')
-    else if (form.value.glic < targetMin) parts.push('⬇️ glicemia bassa')
+    const tMin = cfg.targetMin || 80
+    const tMax = cfg.targetMax || 180
+    if (form.value.glic > tMax) parts.push('📈 glicemia sopra il range')
+    else if (form.value.glic < tMin) parts.push('⬇️ glicemia bassa')
   }
-  return parts.length ? 'Aggiustato per: ' + parts.join(', ') : 'Insulina suggerita per i carboidrati'
-})
+  boloLabel.value = parts.length ? 'Aggiustato per: ' + parts.join(', ') : 'Insulina suggerita per i carboidrati'
+}
+
+// Dipendenze esplicite — si ricalcola ad ogni cambio di carbo, trend, sport, glicemia, umore
+watch(
+  [
+    effCarbs,
+    () => form.value.trend,
+    () => form.value.mood,
+    () => form.value.sport,
+    () => form.value.sportTiming,
+    () => form.value.sportType,
+    () => form.value.glic,
+    () => cfgStore.cfg.ic,
+    () => cfgStore.cfg.fsi,
+    () => cfgStore.cfg.targetMin,
+    () => cfgStore.cfg.targetMax,
+    autoSportType,
+  ],
+  _recomputeBolo,
+  { immediate: true }
+)
 
 function addRow() { form.value.foodRows.push(defaultRow()) }
 function removeRow(i) { form.value.foodRows.splice(i, 1) }
@@ -255,6 +332,7 @@ watch(() => app.openPanel, (p) => {
         mealType: e.mealType || 'Pranzo',
         foodRows: e.foodRows?.length ? e.foodRows.map(r => ({ ...defaultRow(), ...r })) : [defaultRow()],
         glic: e.glic || null, trend: e.trend || '→',
+        mood: e.mood || 'calmo',
         sport: e.sport || false, sportTiming: e.sportTiming || 'before', sportType: e.sportType || 'aerobico',
         boloOverride: e.bolo || null,
         mC: e.carbs || null, mP: e.protein || null, mG: e.fat || null, mF: e.fiber || null,
@@ -263,7 +341,7 @@ watch(() => app.openPanel, (p) => {
     } else {
       const h = new Date().getHours()
       const mt = h < 11 ? 'Colazione' : h < 15 ? 'Pranzo' : 'Cena'
-      form.value = { mealType: mt, foodRows: [defaultRow()], glic: null, trend: '→', sport: false, sportTiming: 'before', sportType: 'aerobico', boloOverride: null, mC: null, mP: null, mG: null, mF: null, ts: app.defaultTs() }
+      form.value = { mealType: mt, foodRows: [defaultRow()], glic: null, trend: '→', mood: 'calmo', sport: false, sportTiming: 'before', sportType: 'aerobico', boloOverride: null, mC: null, mP: null, mG: null, mF: null, ts: app.defaultTs() }
     }
   }
 })
@@ -282,6 +360,7 @@ function save() {
     food:        form.value.foodRows.map(r => r.name).filter(Boolean).join(', '),
     glic:        form.value.glic,
     trend:       form.value.trend,
+    mood:        form.value.mood || 'calmo',
     sport:       form.value.sport || false,
     sportTiming: form.value.sport ? form.value.sportTiming : null,
     sportType:   form.value.sport ? form.value.sportType : null,

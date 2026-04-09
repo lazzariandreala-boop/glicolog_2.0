@@ -10,6 +10,32 @@ export const TREND_FACTORS = {
   '⬇': 0.80,
 }
 
+// ── MOOD / STATO D'ANIMO ──────────────────────────────────────────────────────
+// Lo stress e le emozioni intense aumentano il cortisolo e l'adrenalina,
+// che alzano la glicemia. Fattori indicativi (non sostitutivi del medico).
+export const MOOD_FACTORS = {
+  calmo:      1.00,
+  euforico:   1.05, // adrenalina può alzare leggermente
+  triste:     1.05, // ansia/tristezza può alzare moderatamente
+  stressato:  1.10, // cortisolo alto → glicemia in salita
+  arrabbiato: 1.15, // rabbia/agitazione intensa → picco glicemico possibile
+}
+
+export function moodFactor(mood) {
+  return MOOD_FACTORS[mood] ?? 1.00
+}
+
+export function moodGlicHint(mood) {
+  if (!mood || mood === 'calmo') return null
+  const hints = {
+    arrabbiato: { type: 'warn', msg: '😠 Rabbia/agitazione: gli ormoni dello stress possono alzare la glicemia. Monitora più spesso e considera un leggero aggiustamento del bolo.' },
+    stressato:  { type: 'warn', msg: '😰 Stress attivo: il cortisolo tende ad alzare la glicemia. Considera +10% sul bolo oppure ricontrolla tra 1-2 ore.' },
+    euforico:   { type: 'info', msg: '🤩 Stato euforico: l\'adrenalina può alzare temporaneamente la glicemia. Monitora le prossime misurazioni.' },
+    triste:     { type: 'info', msg: '😔 Umore basso / ansia: può influenzare i livelli di glucosio. Tieni d\'occhio le prossime misurazioni.' },
+  }
+  return hints[mood] || null
+}
+
 export function trendFactor(trend) {
   return TREND_FACTORS[trend] ?? 1.00
 }
@@ -28,7 +54,7 @@ export function trendDir(trend) {
  */
 export function glucoseOnlySuggestion(glic, trend, cfg) {
   if (!glic) return null
-  const { targetMin = 80, targetMax = 180 } = cfg
+  const { targetMin = 80, targetMax = 180, fsi } = cfg
   const dir = trendDir(trend)
 
   if (glic < 70) return null // gestito dall'alert ipo esistente
@@ -48,22 +74,29 @@ export function glucoseOnlySuggestion(glic, trend, cfg) {
       return { type: 'info', msg: `↘️ In lieve calo — nessuna azione urgente, ma continua a monitorare.` }
     }
     if (dir === 'steep-up') {
-      return { type: 'info', msg: `📈 Sta salendo velocemente — controlla nelle prossime misurazioni.` }
+      const corrHint = fsi
+        ? ` Se non hai mangiato di recente, una piccola correzione preventiva può aiutare a restare nel range — chiedi al tuo medico.`
+        : ` Controlla di nuovo tra 20-30 minuti.`
+      return { type: 'warn', msg: `📈 In salita rapida — rischio di superare il tuo target (${targetMax} mg/dL).${corrHint}` }
     }
     if (dir === 'up') {
-      return { type: 'info', msg: `↗️ In lieve salita — monitora che non superi il tuo target.` }
+      return { type: 'info', msg: `↗️ In lieve salita — monitora che non superi il tuo target (${targetMax} mg/dL).` }
     }
     return null
   }
 
   // sopra targetMax
   if (dir === 'steep-up' || dir === 'up') {
-    return { type: 'warn', msg: `📈 Già alta e continua a salire — parla con il tuo medico o genitore.` }
+    const corrHint = fsi
+      ? ` Considera una correzione con insulina rapida — chiedi conferma al tuo medico.`
+      : ''
+    return { type: 'warn', msg: `📈 Già alta e continua a salire.${corrHint}` }
   }
   if (dir === 'steep-down' || dir === 'down') {
     return { type: 'info', msg: `↘️ Alta ma sta scendendo — buon segno! Continua a monitorare.` }
   }
-  return null
+  // sopra range ma stabile
+  return { type: 'warn', msg: `⚠️ Sopra il range (${targetMax} mg/dL) — valuta se fare una correzione con insulina rapida.` }
 }
 
 /**

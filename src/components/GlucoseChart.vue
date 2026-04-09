@@ -217,7 +217,7 @@ function drawChart(canvasRef, wrapRef, pts, todayMode, numDaysParam = 14) {
   if (!canvas || !wrap) return
   const W = wrap.clientWidth || 300
   if (!W) return
-  const H = 200
+  const H = Math.max(200, window.innerHeight - 360 - 200)
   const dpr = window.devicePixelRatio || 1
   canvas.width  = W * dpr
   canvas.height = H * dpr

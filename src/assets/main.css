@@ -452,7 +452,22 @@ body.light-mode .bsave { background: linear-gradient(135deg, #059669 0%, #047857
 .tog-sw input:checked + .tog-track .tog-thumb { transform: translateX(19px) }
 .tog-lbl { font-size: .82rem; color: var(--txt2); transition: color .2s }
 .tog-sw input:checked ~ .tog-lbl { color: #03a9f4 }
-/* Glicemia full-width row */
+/* ── PANEL GLICEMIA: hero redesign ── */
+.glic-hero-card { background: var(--card); border: 1.5px solid var(--bdr2); border-radius: 18px; padding: 18px 16px 14px; margin-bottom: 14px }
+.glic-hero-lbl { font-size: .62rem; font-weight: 800; text-transform: uppercase; letter-spacing: .8px; color: var(--txt2); text-align: center; margin-bottom: 6px }
+.glic-hero-inp { display: block; width: 100%; background: none; border: none; outline: none; font-family: var(--mono); font-size: 4rem; font-weight: 700; color: var(--txt); text-align: center; line-height: 1.1; padding: 4px 0 8px; caret-color: var(--g) }
+.glic-hero-inp::placeholder { color: var(--bdr2) }
+.glic-hero-inp:focus { color: var(--g) }
+.glic-hero-divider { height: 1px; background: var(--bdr); margin: 10px 0 12px }
+.glic-hero-trend-lbl { font-size: .62rem; font-weight: 800; text-transform: uppercase; letter-spacing: .8px; color: var(--txt2); margin-bottom: 8px }
+/* Sport card collassabile */
+.glic-sport-card { background: var(--card); border: 1px solid var(--bdr); border-radius: 14px; padding: 14px 16px; margin-bottom: 14px }
+.glic-sport-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer }
+.glic-sport-header-left { display: flex; align-items: center; gap: 8px }
+.glic-sport-ico { font-size: 1.1rem; line-height: 1 }
+.glic-sport-hdr-lbl { font-size: .9rem; font-weight: 600; color: var(--txt) }
+.glic-sport-inner { margin-top: 14px; border-top: 1px solid var(--bdr); padding-top: 10px }
+/* Glicemia full-width row (legacy, kept for compat) */
 .glic-main-row { flex-direction: column; align-items: stretch; gap: 8px }
 .glic-main-input { width: 100% !important; font-size: 2.4rem !important; padding: 18px !important; text-align: center }
 .sport-kcal-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px }
@@ -532,6 +547,7 @@ body.light-mode .bsave { background: linear-gradient(135deg, #059669 0%, #047857
 /* ── TAB LAYOUT ── */
 .tab-content { padding-bottom: calc(72px + env(safe-area-inset-bottom)); min-height: 0 }
 .tab-pad { padding: 14px }
+.tab-stats { padding: 12px 14px 0 }
 
 /* ── BOTTOM NAVBAR ── */
 .bnav {
@@ -559,8 +575,8 @@ body.light-mode .bnav { background: rgba(255,255,255,.92) }
   background: var(--g); position: absolute;
   box-shadow: 0 0 8px var(--g);
 }
-.bnav-ico { font-size: 1.25rem; line-height: 1 }
-.bnav-lbl { font-size: .58rem; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; line-height: 1 }
+.bnav-ico { font-size: 1.2rem; line-height: 1 }
+.bnav-lbl { font-size: .52rem; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; line-height: 1 }
 .bnav-add {
   flex: 0 0 56px; height: 56px; border-radius: 50%;
   background: linear-gradient(145deg, #00e676 0%, #00c853 100%); color: #000; border: none; font-size: 1.9rem; font-weight: 300; line-height: 1; cursor: pointer; font-family: var(--sans); box-shadow: 0 4px 24px rgba(0,230,118,.5), 0 0 0 4px rgba(0,230,118,.08); transition: transform .15s, box-shadow .15s;
@@ -568,6 +584,24 @@ body.light-mode .bnav { background: rgba(255,255,255,.92) }
   display: flex; align-items: center; justify-content: center;
 }
 .bnav-add:active { transform: scale(.88); box-shadow: 0 2px 10px rgba(0,230,118,.3) }
+
+/* ── FAB + (mobile, fisso in basso a destra) ── */
+.fab-add {
+  position: fixed;
+  bottom: calc(72px + env(safe-area-inset-bottom));
+  right: 6px;
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #00e676 0%, #00c853 100%);
+  color: #000; border: none;
+  font-size: 1.5rem; font-weight: 300; line-height: 1;
+  cursor: pointer; font-family: var(--sans);
+  box-shadow: 0 4px 20px rgba(0,230,118,.55), 0 0 0 4px rgba(0,230,118,.1);
+  transition: transform .15s, box-shadow .15s;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 59;
+}
+.fab-add:active { transform: scale(.88); box-shadow: 0 2px 10px rgba(0,230,118,.3) }
 
 /* ── HOME GRID (6 azioni grandi) ── */
 .home-grid {
@@ -817,3 +851,97 @@ body.light-mode .qa-sheet { background: rgba(255,255,255,.97) }
   /* Overlay: copre tutto inclusa sidebar */
   .ov { left: 0 }
 }
+
+/* ── MOOD / STATO D'ANIMO ── */
+.glic-mood-card { background: var(--card2); border: 1px solid var(--bdr); border-radius: 14px; padding: 12px 14px; margin: 6px 0 2px }
+.glic-mood-lbl { font-size: .68rem; color: var(--txt2); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px }
+.mood-selector { display: flex; gap: 6px }
+.mood-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; background: var(--card); border: 1px solid var(--bdr); border-radius: 12px; padding: 8px 4px 7px; cursor: pointer; flex: 1; transition: border-color .15s, background .15s; min-width: 0 }
+.mood-btn:active { transform: scale(0.90) }
+.mood-btn.on { border-color: var(--o); background: rgba(255,171,64,.09) }
+.mood-ico { font-size: 1.45rem; line-height: 1 }
+.mood-lbl-sm { font-size: .58rem; color: var(--txt2); text-align: center; line-height: 1.2; white-space: nowrap }
+.mood-btn.on .mood-lbl-sm { color: var(--o) }
+body.light-mode .mood-btn { background: #f7f9fc; border-color: rgba(0,0,0,.12) }
+body.light-mode .mood-btn.on { border-color: var(--o); background: rgba(194,129,10,.07) }
+
+/* ── HEALTH SUMMARY ── */
+.hs-sum { padding: 4px 0 24px }
+.hs-sum-hd { display: flex; align-items: center; justify-content: space-between; padding: 0 2px 10px }
+.hs-sum-title { font-size: .85rem; font-weight: 600; color: var(--txt) }
+.hs-sum-btn { background: none; border: none; color: var(--txt2); font-size: 1rem; cursor: pointer; padding: 4px 6px; border-radius: 8px }
+.hs-sum-btn:hover { background: var(--card2) }
+@keyframes hs-spin { to { transform: rotate(360deg) } }
+.hs-spinning { display: inline-block; animation: hs-spin .8s linear infinite }
+
+/* Not connected */
+.hs-not-connected { background: var(--card); border: 1px solid var(--bdr); border-radius: 16px; padding: 28px 20px; text-align: center }
+.hs-nc-ico { font-size: 2.5rem; margin-bottom: 10px }
+.hs-nc-title { font-size: .95rem; font-weight: 600; margin-bottom: 6px }
+.hs-nc-sub { font-size: .72rem; color: var(--txt2); line-height: 1.5 }
+
+/* Tabs */
+.hs-tabs { display: flex; gap: 6px; margin-bottom: 12px }
+.hs-tab { background: var(--card2); border: 1px solid var(--bdr); border-radius: 10px; color: var(--txt2); font-family: var(--sans); font-size: .72rem; font-weight: 500; padding: 6px 12px; cursor: pointer; transition: all .15s }
+.hs-tab.on { background: var(--g); border-color: var(--g); color: #000; font-weight: 600 }
+
+/* Sync label */
+.hs-sync-lbl { font-size: .64rem; color: var(--txt2); margin-bottom: 10px }
+
+/* Summary cards */
+.hs-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 14px }
+.hs-card { background: var(--card); border: 1px solid var(--bdr); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 3px }
+.hs-card-val { font-family: var(--mono); font-size: 1.35rem; font-weight: 600; line-height: 1 }
+.hs-card-lbl { font-size: .65rem; color: var(--txt2) }
+.hs-card-sub { font-size: .62rem; color: var(--g); margin-top: 2px }
+
+/* Charts */
+.hs-chart-section { margin-bottom: 16px }
+.hs-chart-lbl { font-size: .66rem; color: var(--txt2); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px }
+.hs-chart-wrap { width: 100%; overflow: hidden; border-radius: 10px; background: var(--card); border: 1px solid var(--bdr); padding: 10px 8px 4px }
+.hs-canvas { display: block; width: 100% }
+
+/* Today view */
+.hs-today-grid { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px }
+.hs-today-row { display: flex; gap: 12px; align-items: flex-start; background: var(--card); border: 1px solid var(--bdr); border-radius: 14px; padding: 14px }
+.hs-today-ico { font-size: 1.4rem; line-height: 1; margin-top: 2px }
+.hs-today-body { flex: 1 }
+.hs-today-val { font-family: var(--mono); font-size: 1rem; font-weight: 600; margin-bottom: 6px }
+.hs-today-bar-wrap { height: 6px; background: var(--bdr); border-radius: 3px; overflow: hidden; margin-bottom: 4px }
+.hs-today-bar { height: 100%; border-radius: 3px; transition: width .4s }
+.hs-today-sub { font-size: .62rem; color: var(--txt2) }
+
+/* Sessions list */
+.hs-sessions { margin-top: 4px }
+.hs-sessions-lbl { font-size: .66rem; color: var(--txt2); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px }
+.hs-session-row { display: flex; align-items: center; gap: 10px; background: var(--card); border: 1px solid var(--bdr); border-radius: 12px; padding: 10px 12px; margin-bottom: 6px }
+.hs-session-ico { font-size: 1.1rem }
+.hs-session-body { flex: 1; min-width: 0 }
+.hs-session-name { font-size: .82rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.hs-session-meta { font-size: .64rem; color: var(--txt2); margin-top: 2px }
+.hs-session-badge { background: rgba(64,196,255,.15); border: 1px solid rgba(64,196,255,.3); color: var(--b); font-size: .58rem; font-weight: 600; padding: 2px 6px; border-radius: 6px; white-space: nowrap }
+
+/* Averages footer */
+.hs-avgs { display: flex; gap: 8px; margin-top: 14px; border-top: 1px solid var(--bdr); padding-top: 14px }
+.hs-avg-item { flex: 1; text-align: center }
+.hs-avg-val { display: block; font-family: var(--mono); font-size: 1rem; font-weight: 600 }
+.hs-avg-lbl { display: block; font-size: .62rem; color: var(--txt2); margin-top: 2px }
+
+/* Empty */
+.hs-empty { font-size: .72rem; color: var(--txt2); text-align: center; padding: 16px 0 }
+
+/* ── PANEL HEALTH SYNC ── */
+.hs-status-card { display: flex; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--bdr); border-radius: 14px; padding: 14px; margin-bottom: 10px }
+.hs-status-card.connected { border-color: rgba(0,230,118,.3); background: rgba(0,230,118,.05) }
+.hs-status-ico { font-size: 1.4rem }
+.hs-status-title { font-size: .85rem; font-weight: 600 }
+.hs-status-sub { font-size: .67rem; color: var(--txt2); margin-top: 2px }
+.hs-section { background: var(--card2); border: 1px solid var(--bdr); border-radius: 14px; padding: 14px; margin-bottom: 10px }
+.hs-section-lbl { font-size: .65rem; color: var(--txt2); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px }
+.hs-actions { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px }
+.hs-guide { background: var(--card2); border: 1px solid var(--bdr); border-radius: 14px; padding: 14px; margin-bottom: 10px }
+.hs-guide-title { font-size: .72rem; font-weight: 600; margin-bottom: 10px; color: var(--txt3) }
+.hs-guide-steps { padding-left: 16px; display: flex; flex-direction: column; gap: 7px }
+.hs-guide-steps li { font-size: .7rem; color: var(--txt2); line-height: 1.45 }
+.hs-guide-steps strong { color: var(--txt) }
+.hs-uri { display: block; font-family: var(--mono); font-size: .62rem; background: var(--card); border: 1px solid var(--bdr); border-radius: 6px; padding: 5px 8px; margin-top: 4px; word-break: break-all; color: var(--b) }

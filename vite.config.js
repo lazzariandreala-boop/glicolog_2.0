@@ -26,7 +26,7 @@ export default defineConfig({
       }
     })
   ],
-  base: '/glicolog_2.0/',
+  base: process.env.VERCEL === '1' ? '/' : '/glicolog_2.0/',
   resolve: {
     alias: { '@': '/src' }
   }

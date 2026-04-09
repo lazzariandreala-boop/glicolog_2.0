@@ -1,12 +1,18 @@
 <template>
   <PanelBase :visible="visible">
-    <div class="pt">🩸 {{ isEdit ? 'Modifica glicemia' : 'Nuova glicemia' }}</div>
+    <div class="pt">🩸 {{ isEdit ? 'Modifica glicemia' : 'Misura glicemia' }}</div>
 
-    <div class="fr">
-      <span class="fl">Glicemia (mg/dL)</span>
-      <input class="fi big" type="number" inputmode="numeric" v-model.number="form.glic" placeholder="mg/dL" ref="inputRef" />
+    <!-- HERO: valore + tendenza in un unico blocco visivo -->
+    <div class="glic-hero-card">
+      <div class="glic-hero-lbl">Valore glicemico (mg/dL)</div>
+      <input class="glic-hero-inp" type="number" inputmode="numeric"
+             v-model.number="form.glic" placeholder="—" ref="inputRef" />
+      <div class="glic-hero-divider"></div>
+      <div class="glic-hero-trend-lbl">Sta salendo o scendendo?</div>
+      <TrendSelector v-model="form.trend" />
     </div>
-    <!-- Alert inline -->
+
+    <!-- Alerts e hints -->
     <div v-if="form.glic && form.glic < 70" class="glic-action-alert glic-action-low">
       <div class="gaa-body">
         <div class="gaa-icon">🍬</div>
@@ -34,33 +40,49 @@
       {{ glucoseHint.msg }}
     </div>
 
-    <div class="fr">
-      <span class="fl">Sta salendo o scendendo?</span>
-      <TrendSelector v-model="form.trend" />
+    <!-- Stato d'animo -->
+    <div class="glic-mood-card">
+      <div class="glic-mood-lbl">😶 Stato d'animo</div>
+      <div class="mood-selector">
+        <button v-for="m in moodOptions" :key="m.value"
+                class="mood-btn" :class="{ on: form.mood === m.value }"
+                type="button" @click="form.mood = m.value">
+          <span class="mood-ico">{{ m.ico }}</span>
+          <span class="mood-lbl-sm">{{ m.label }}</span>
+        </button>
+      </div>
+    </div>
+    <div v-if="moodHint" :class="['hint-box', moodHint.type === 'warn' ? 'hint-warn' : 'hint-info']">
+      {{ moodHint.msg }}
     </div>
 
-    <!-- Contesto sport -->
-    <div class="fr">
-      <span class="fl">Stai facendo sport oggi?</span>
-      <label class="tog-sw">
-        <input type="checkbox" v-model="form.sport" />
-        <span class="tog-track"><span class="tog-thumb"></span></span>
-        <span class="tog-lbl">{{ form.sport ? 'Sì' : 'No' }}</span>
+    <!-- Sezione sport (card collassabile) -->
+    <div class="glic-sport-card">
+      <label class="glic-sport-header">
+        <div class="glic-sport-header-left">
+          <span class="glic-sport-ico">🏃</span>
+          <span class="glic-sport-hdr-lbl">Stai facendo sport oggi?</span>
+        </div>
+        <label class="tog-sw">
+          <input type="checkbox" v-model="form.sport" />
+          <span class="tog-track"><span class="tog-thumb"></span></span>
+          <span class="tog-lbl">{{ form.sport ? 'Sì' : 'No' }}</span>
+        </label>
       </label>
+      <template v-if="form.sport">
+        <div class="fr glic-sport-inner">
+          <span class="fl">Prima o dopo lo sport?</span>
+          <SegmentControl v-model="form.sportTiming" :options="sportTimingOptions" />
+        </div>
+        <div class="fr">
+          <span class="fl">Che sport fai?</span>
+          <SegmentControl v-model="form.sportType" :options="sportTypeOptions" />
+        </div>
+        <div v-if="sportHint" :class="['hint-box', sportHint.type === 'warn' ? 'hint-warn' : 'hint-info']">
+          {{ sportHint.msg }}
+        </div>
+      </template>
     </div>
-    <template v-if="form.sport">
-      <div class="fr">
-        <span class="fl">Misuri prima o dopo lo sport?</span>
-        <SegmentControl v-model="form.sportTiming" :options="sportTimingOptions" />
-      </div>
-      <div class="fr">
-        <span class="fl">Che tipo di sport?</span>
-        <SegmentControl v-model="form.sportType" :options="sportTypeOptions" />
-      </div>
-      <div v-if="sportHint" :class="['hint-box', sportHint.type === 'warn' ? 'hint-warn' : 'hint-info']">
-        {{ sportHint.msg }}
-      </div>
-    </template>
 
     <div class="fr">
       <span class="fl">Note (opzionale)</span>
@@ -83,7 +105,7 @@ import PanelBase from './PanelBase.vue'
 import TrendSelector from '@/components/shared/TrendSelector.vue'
 import SegmentControl from '@/components/shared/SegmentControl.vue'
 import TimeRow from '@/components/shared/TimeRow.vue'
-import { glucoseOnlySuggestion, sportGlicSuggestion } from '@/utils/glucoseSuggestions.js'
+import { glucoseOnlySuggestion, sportGlicSuggestion, moodGlicHint } from '@/utils/glucoseSuggestions.js'
 
 const app = useAppStore()
 const entriesStore = useEntriesStore()
@@ -101,8 +123,15 @@ const sportTypeOptions = [
   { value: 'aerobico',   label: 'Corsa / Bici / Nuoto' },
   { value: 'anaerobico', label: 'Pesi / HIIT' },
 ]
+const moodOptions = [
+  { value: 'calmo',      ico: '😊', label: 'Calmo' },
+  { value: 'euforico',   ico: '🤩', label: 'Euforico' },
+  { value: 'stressato',  ico: '😰', label: 'Stressato' },
+  { value: 'triste',     ico: '😔', label: 'Triste' },
+  { value: 'arrabbiato', ico: '😠', label: 'Arrabbiato' },
+]
 
-const form = ref({ glic: null, trend: '→', note: '', ts: app.defaultTs(), sport: false, sportTiming: 'before', sportType: 'aerobico' })
+const form = ref({ glic: null, trend: '→', mood: 'calmo', note: '', ts: app.defaultTs(), sport: false, sportTiming: 'before', sportType: 'aerobico' })
 
 const isTrendFalling = computed(() => form.value.trend === '↘' || form.value.trend === '⬇')
 
@@ -117,15 +146,17 @@ const sportHint = computed(() =>
     : null
 )
 
+const moodHint = computed(() => moodGlicHint(form.value.mood))
+
 watch(() => app.openPanel, (p) => {
   visible.value = p === 'glicemia'
   if (p === 'glicemia') {
     const e = app.editEntry
     isEdit.value = !!e
     if (e) {
-      form.value = { glic: e.glic, trend: e.trend||'→', note: e.note||'', ts: e.ts, sport: e.sport||false, sportTiming: e.sportTiming||'before', sportType: e.sportType||'aerobico' }
+      form.value = { glic: e.glic, trend: e.trend||'→', mood: e.mood||'calmo', note: e.note||'', ts: e.ts, sport: e.sport||false, sportTiming: e.sportTiming||'before', sportType: e.sportType||'aerobico' }
     } else {
-      form.value = { glic: null, trend: '→', note: '', ts: app.defaultTs(), sport: false, sportTiming: 'before', sportType: 'aerobico' }
+      form.value = { glic: null, trend: '→', mood: 'calmo', note: '', ts: app.defaultTs(), sport: false, sportTiming: 'before', sportType: 'aerobico' }
     }
     nextTick(() => inputRef.value?.focus())
   }
@@ -133,7 +164,7 @@ watch(() => app.openPanel, (p) => {
 
 function buildEntry() {
   const glic = Number(form.value.glic)
-  return { type: 'glicemia', glic, trend: form.value.trend, note: form.value.note, ts: form.value.ts, sport: form.value.sport || false, sportTiming: form.value.sport ? form.value.sportTiming : null, sportType: form.value.sport ? form.value.sportType : null }
+  return { type: 'glicemia', glic, trend: form.value.trend, mood: form.value.mood || 'calmo', note: form.value.note, ts: form.value.ts, sport: form.value.sport || false, sportTiming: form.value.sport ? form.value.sportTiming : null, sportType: form.value.sport ? form.value.sportType : null }
 }
 
 function triggerAlertIfNeeded(glic, trend) {

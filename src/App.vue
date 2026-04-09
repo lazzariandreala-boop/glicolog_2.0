@@ -112,6 +112,13 @@
           <SummaryBoxes />
         </template>
 
+        <!-- SALUTE / GOOGLE FIT -->
+        <template v-else-if="activeTab === 'health'">
+          <div class="tab-pad">
+            <HealthSummary />
+          </div>
+        </template>
+
       </div>
     </template>
 
@@ -129,7 +136,7 @@
         <button class="bnav-add" @click="showQuickAdd = true">+</button>
       </template>
 
-      <!-- Mobile: 4 tab + pulsante centrale -->
+      <!-- Mobile: 5 tab senza + (FAB separato) -->
       <template v-else>
         <button class="bnav-tab" :class="{ active: activeTab === 'entries' }" @click="activeTab = 'entries'">
           <span class="bnav-ico">📋</span><span class="bnav-lbl">TimeLine</span>
@@ -137,9 +144,11 @@
         <button class="bnav-tab" :class="{ active: activeTab === 'stats' }" @click="activeTab = 'stats'">
           <span class="bnav-ico">📊</span><span class="bnav-lbl">Grafici</span>
         </button>
-        <button class="bnav-add" @click="showQuickAdd = true">+</button>
         <button class="bnav-tab" :class="{ active: activeTab === 'calendar' }" @click="activeTab = 'calendar'">
           <span class="bnav-ico">📅</span><span class="bnav-lbl">Mensile</span>
+        </button>
+        <button class="bnav-tab" :class="{ active: activeTab === 'health' }" @click="activeTab = 'health'">
+          <span class="bnav-ico">🏃</span><span class="bnav-lbl">Salute</span>
         </button>
         <button class="bnav-tab" :class="{ active: activeTab === 'nutrition' }" @click="activeTab = 'nutrition'">
           <span class="bnav-ico">🥗</span><span class="bnav-lbl">Nutrizione</span>
@@ -147,6 +156,9 @@
       </template>
 
     </nav>
+
+    <!-- FAB + (mobile only) -->
+    <button v-if="!isDesktop" class="fab-add" @click="showQuickAdd = true" aria-label="Inserimento rapido">+</button>
 
     <!-- OVERLAY (pannelli + quick add) -->
     <div class="ov" :class="{ on: appStore.openPanel || showQuickAdd }" @click="closeOverlay()" />
@@ -190,6 +202,7 @@
     <PanelCorrezione />
     <PanelAperitivi />
     <PanelProfilo />
+    <PanelHealthSync />
 
     <!-- MODALS -->
     <Modals />
@@ -217,19 +230,24 @@ import Toast            from '@/components/Toast.vue'
 import Modals           from '@/components/modals/Modals.vue'
 import GlucoseChart     from '@/components/GlucoseChart.vue'
 import MonthlyCalendar  from '@/components/MonthlyCalendar.vue'
+import HealthSummary    from '@/components/HealthSummary.vue'
 
 // Panels
-import PanelPasto      from '@/components/panels/PanelPasto.vue'
-import PanelSpuntino   from '@/components/panels/PanelSpuntino.vue'
-import PanelGlicemia   from '@/components/panels/PanelGlicemia.vue'
-import PanelInsulina   from '@/components/panels/PanelInsulina.vue'
-import PanelAlcool     from '@/components/panels/PanelAlcool.vue'
-import PanelSport      from '@/components/panels/PanelSport.vue'
-import PanelCorrezione from '@/components/panels/PanelCorrezione.vue'
-import PanelAperitivi  from '@/components/panels/PanelAperitivi.vue'
-import PanelProfilo    from '@/components/panels/PanelProfilo.vue'
+import PanelPasto       from '@/components/panels/PanelPasto.vue'
+import PanelSpuntino    from '@/components/panels/PanelSpuntino.vue'
+import PanelGlicemia    from '@/components/panels/PanelGlicemia.vue'
+import PanelInsulina    from '@/components/panels/PanelInsulina.vue'
+import PanelAlcool      from '@/components/panels/PanelAlcool.vue'
+import PanelSport       from '@/components/panels/PanelSport.vue'
+import PanelCorrezione  from '@/components/panels/PanelCorrezione.vue'
+import PanelAperitivi   from '@/components/panels/PanelAperitivi.vue'
+import PanelProfilo     from '@/components/panels/PanelProfilo.vue'
+import PanelHealthSync  from '@/components/panels/PanelHealthSync.vue'
 
-const appStore = useAppStore()
+import { useHealthSyncStore } from '@/stores/healthSync.js'
+
+const appStore   = useAppStore()
+const hsStore    = useHealthSyncStore()
 
 const activeTab         = ref('entries')
 const desktopGroup      = ref('main')
@@ -285,7 +303,7 @@ async function autoSyncHealthConnect() {
   } catch {}
 }
 
-onMounted(() => {
+onMounted(async () => {
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault()
     deferredInstallPrompt = e
@@ -304,6 +322,31 @@ onMounted(() => {
 
   if ('serviceWorker' in navigator && !(window.Capacitor?.isNativePlatform())) {
     navigator.serviceWorker.register('/sw.js').catch(() => {})
+  }
+
+  // ── Google Fit OAuth callback ─────────────────────────────────
+  // Dopo il redirect Google, la URL contiene ?code=...&state=...
+  const urlParams = new URLSearchParams(window.location.search)
+  const code      = urlParams.get('code')
+  const oauthErr  = urlParams.get('error')
+
+  if (code && hsStore.isConfigured) {
+    // Pulisci URL senza ricaricare la pagina
+    window.history.replaceState({}, document.title, window.location.pathname)
+    try {
+      await hsStore.handleCallback(code)
+      appStore.toast('✅ Google Fit connesso!')
+      // Sync immediato dopo la connessione
+      await hsStore.sync(30)
+      appStore.toast('✅ Dati importati da Google Fit')
+      activeTab.value = 'health'
+    } catch (e) {
+      appStore.toast('❌ Connessione Google Fit: ' + e.message)
+      appStore.openPanelFor('healthsync')
+    }
+  } else if (oauthErr) {
+    window.history.replaceState({}, document.title, window.location.pathname)
+    appStore.toast('❌ Google Fit: ' + (oauthErr === 'access_denied' ? 'accesso negato' : oauthErr))
   }
 })
 
