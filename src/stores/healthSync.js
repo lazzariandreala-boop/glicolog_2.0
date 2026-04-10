@@ -87,30 +87,39 @@ export const useHealthSyncStore = defineStore('healthsync', () => {
       const hrPerDay    = {}
 
       // ── Passi ────────────────────────────────────────────────
-      // Health Connect gestisce già la deduplicazione tra sorgenti:
-      // restituisce i record dal provider con priorità più alta.
-      // Sommiamo direttamente tutti i record per giorno.
+      // HC restituisce record da TUTTE le sorgenti (pedometro sistema,
+      // Google Fit, Samsung Health, ecc.) che spesso si sovrappongono.
+      // Usiamo deduplicazione per intervalli: ordiniamo per durata
+      // DECRESCENTE così i record lunghi (sintesi giornaliera) coprono
+      // per primi e quelli corti (campionamenti al minuto) non si sommano.
       try {
         const { records } = await HealthConnect.readRecords({ type: 'Steps', timeRangeFilter: tf })
         const recs = records ?? []
         debugInfo.value += ` steps:${recs.length}rec`
 
-        // Log struttura primo record per debug
+        // Mostra struttura raw del primo record per diagnostica
         if (recs.length > 0) {
-          const sample = recs[0]
-          debugInfo.value += ` [st:${typeof sample.startTime}|cnt:${sample.count ?? sample.steps ?? '?'}]`
+          const s = recs[0]
+          debugInfo.value += ` [st:${JSON.stringify(s.startTime).slice(0,20)} cnt:${s.count ?? s.steps ?? '?'}]`
         }
 
+        // Raggruppa per giorno
+        const byDay = {}
         for (const r of recs) {
           const startMs = toMs(r.startTime)
-          if (!startMs) continue
-          const dk    = toDateKey(startMs)
-          // Il plugin può usare r.count oppure r.steps a seconda della versione
-          const count = r.count ?? r.steps ?? 0
-          stepsPerDay[dk] = (stepsPerDay[dk] || 0) + count
+          const endMs   = toMs(r.endTime) || (startMs + 60_000)
+          if (!startMs || endMs <= startMs) continue
+          const dk = toDateKey(startMs)
+          if (!byDay[dk]) byDay[dk] = []
+          byDay[dk].push({ start: startMs, end: endMs, count: r.count ?? r.steps ?? 0 })
         }
 
-        debugInfo.value += ` stTotal:${Object.values(stepsPerDay).reduce((a,b)=>a+b,0)|0}`
+        for (const [dk, dayRecs] of Object.entries(byDay)) {
+          stepsPerDay[dk] = sumNonOverlapping(dayRecs)
+        }
+
+        const tot = Object.values(stepsPerDay).reduce((a, b) => a + b, 0)
+        debugInfo.value += ` tot:${Math.round(tot)}`
       } catch (e) {
         debugInfo.value += ` stepsErr:${e?.message}`
       }
@@ -118,14 +127,17 @@ export const useHealthSyncStore = defineStore('healthsync', () => {
       // ── Calorie attive ───────────────────────────────────────
       try {
         const { records } = await HealthConnect.readRecords({ type: 'ActiveCaloriesBurned', timeRangeFilter: tf })
-        const recs = records ?? []
-        debugInfo.value += ` kcal:${recs.length}rec`
-
-        for (const r of recs) {
+        const byDay = {}
+        for (const r of records ?? []) {
           const startMs = toMs(r.startTime)
-          if (!startMs) continue
+          const endMs   = toMs(r.endTime) || (startMs + 60_000)
+          if (!startMs || endMs <= startMs) continue
           const dk = toDateKey(startMs)
-          kcalPerDay[dk] = (kcalPerDay[dk] || 0) + toKcal(r.energy)
+          if (!byDay[dk]) byDay[dk] = []
+          byDay[dk].push({ start: startMs, end: endMs, count: toKcal(r.energy) })
+        }
+        for (const [dk, dayRecs] of Object.entries(byDay)) {
+          kcalPerDay[dk] = sumNonOverlapping(dayRecs)
         }
       } catch (e) {
         debugInfo.value += ` kcalErr:${e?.message}`
@@ -169,7 +181,6 @@ export const useHealthSyncStore = defineStore('healthsync', () => {
         }
       }
 
-      // Aggiorna anche lo store passi globale
       for (const [dk, steps] of Object.entries(stepsPerDay)) {
         if (steps > 10) stepsStore.setDay(dk, Math.round(steps))
       }
@@ -185,27 +196,25 @@ export const useHealthSyncStore = defineStore('healthsync', () => {
 
   // ── Utility ───────────────────────────────────────────────────
 
-  // Converte il timestamp del plugin in ms epoch.
-  // Il plugin può restituire: string ISO, number (ms), number (secondi),
-  // oppure oggetto { epochSecond, nano } come fa la SDK Java/Kotlin sottostante.
+  // Converte timestamp del plugin in ms epoch.
+  // Il plugin può restituire: string ISO, number ms, number secondi,
+  // oppure oggetto Kotlin Instant { epochSecond, nano }.
   function toMs(t) {
     if (!t) return 0
     if (typeof t === 'number') {
-      // Se è in secondi (Unix timestamp < anno 2100 in ms ≈ 4e12)
-      return t > 1e12 ? t : t * 1000
+      return t > 1e12 ? t : t * 1000  // secondi vs millisecondi
     }
     if (typeof t === 'string') {
       const ms = Date.parse(t)
       return isFinite(ms) ? ms : 0
     }
-    // Oggetto { epochSecond, nano } — formato Kotlin Instant serializzato
     if (typeof t === 'object' && t.epochSecond != null) {
       return t.epochSecond * 1000 + Math.round((t.nano || 0) / 1_000_000)
     }
     return 0
   }
 
-  // 'YYYY-MM-DD' in timezone locale
+  // 'YYYY-MM-DD' in timezone locale del dispositivo
   function toDateKey(ms) {
     const d = new Date(ms)
     const y = d.getFullYear()
@@ -216,7 +225,6 @@ export const useHealthSyncStore = defineStore('healthsync', () => {
 
   function toKcal(energy) {
     if (!energy) return 0
-    // Formato v0.7: { value, unit } oppure { inKilocalories }
     if (energy.inKilocalories != null) return energy.inKilocalories
     if (energy.value == null) return 0
     switch (energy.unit) {
@@ -225,6 +233,65 @@ export const useHealthSyncStore = defineStore('healthsync', () => {
       case 'kilojoules':   return energy.value / 4.184
       case 'joules':       return energy.value / 4184
       default:             return energy.value
+    }
+  }
+
+  // Somma intervalli {start, end, count} senza doppio conteggio.
+  //
+  // ORDINAMENTO PER DURATA DECRESCENTE: i record lunghi (es. sintesi
+  // giornaliera di Google Fit) coprono per primi l'intero arco temporale.
+  // I record corti (es. campionamenti al minuto del pedometro) trovano
+  // tutto già coperto e contribuiscono con 0 → nessun doppio conteggio.
+  //
+  // Se invece i record sono tutti della stessa granularità (es. tutti da
+  // 1 minuto, senza overlap) la proporzione uncovered/total = 1 e somma
+  // correttamente tutti i passi.
+  function sumNonOverlapping(recs) {
+    if (!recs.length) return 0
+
+    // Ordina per durata DECRESCENTE (record più lunghi prima)
+    recs.sort((a, b) => (b.end - b.start) - (a.end - a.start))
+
+    let total = 0
+    const covered = []   // lista di [start, end] già coperti (unione)
+
+    for (const { start, end, count } of recs) {
+      if (start >= end) continue
+
+      // Calcola i ms di [start, end] NON ancora coperti
+      let uncoveredMs = 0
+      let cur = start
+      for (const [cs, ce] of covered) {
+        if (ce <= cur) continue
+        if (cs >= end) break
+        if (cs > cur) uncoveredMs += cs - cur
+        cur = Math.max(cur, ce)
+      }
+      if (cur < end) uncoveredMs += end - cur
+
+      const totalMs = end - start
+      if (totalMs > 0 && uncoveredMs > 0) {
+        total += count * (uncoveredMs / totalMs)
+      }
+
+      // Aggiunge [start, end] alla lista dei coperti (merge)
+      addInterval(covered, start, end)
+    }
+
+    return Math.round(total)
+  }
+
+  function addInterval(covered, s, e) {
+    let i = 0
+    while (i < covered.length && covered[i][1] < s) i++
+    const j = i
+    while (i < covered.length && covered[i][0] <= e) i++
+    if (j === i) {
+      covered.splice(j, 0, [s, e])
+    } else {
+      const newStart = Math.min(covered[j][0], s)
+      const newEnd   = Math.max(covered[i - 1][1], e)
+      covered.splice(j, i - j, [newStart, newEnd])
     }
   }
 
