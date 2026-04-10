@@ -1,178 +1,187 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
-import {
-  startOAuthFlow,
-  handleOAuthCallback,
-  refreshAccessToken,
-  fetchAllData,
-} from '@/utils/googleFit.js'
-import { useEntriesStore, useStepsStore, useConfigStore } from './index.js'
+import { ref } from 'vue'
+import { useStepsStore } from './index.js'
 
-const HS_KEY = 'gl_healthsync_v1'
+// Import statico — Vite lo bundlerà correttamente nell'APK
+// In un browser normale l'import funziona ma il plugin nativo non risponde
+import { HealthConnect } from 'capacitor-health-connect'
 
-// Credenziali di default da variabili d'ambiente (file .env, mai committato)
-const ENV_CLIENT_ID     = import.meta.env.VITE_GFIT_CLIENT_ID     || ''
-const ENV_CLIENT_SECRET = import.meta.env.VITE_GFIT_CLIENT_SECRET || ''
+const HS_KEY  = 'gl_healthsync_hc_v1'
+const HC_READ = ['Steps', 'ActiveCaloriesBurned', 'HeartRateSeries']
 
 export const useHealthSyncStore = defineStore('healthsync', () => {
-  const _cfg = ref({
-    clientId:     ENV_CLIENT_ID,
-    clientSecret: ENV_CLIENT_SECRET,
-    accessToken:  null,
-    refreshToken: null,
-    tokenExpiry:  null,
-    lastSync:     null,
-  })
+  const available  = ref(false)
+  const hasPerms   = ref(false)
+  const lastSync   = ref(null)
+  const dailyData  = ref({})      // { 'YYYY-MM-DD': { steps, kcal, hr } }
+  const syncing    = ref(false)
+  const debugInfo  = ref('')      // visibile nell'UI per diagnostica
 
-  // Cache dati giornalieri: { 'YYYY-MM-DD': { steps, kcal, hr } }
-  const dailyData = ref({})
-
-  // ── Persistenza ─────────────────────────────────────────────────
+  // ── Persistenza ──────────────────────────────────────────────
   function load() {
     try {
       const raw = JSON.parse(localStorage.getItem(HS_KEY)) || {}
-      if (raw.cfg) {
-        Object.assign(_cfg.value, raw.cfg)
-        // Se le credenziali non erano salvate, usa quelle dell'env
-        if (!_cfg.value.clientId)     _cfg.value.clientId     = ENV_CLIENT_ID
-        if (!_cfg.value.clientSecret) _cfg.value.clientSecret = ENV_CLIENT_SECRET
-      }
-      if (raw.daily) Object.assign(dailyData.value, raw.daily)
+      if (raw.lastSync) lastSync.value = raw.lastSync
+      if (raw.daily)    Object.assign(dailyData.value, raw.daily)
     } catch {}
   }
 
   function persist() {
-    localStorage.setItem(HS_KEY, JSON.stringify({ cfg: _cfg.value, daily: dailyData.value }))
+    localStorage.setItem(HS_KEY, JSON.stringify({
+      lastSync: lastSync.value,
+      daily:    dailyData.value,
+    }))
   }
 
-  // ── Computed ─────────────────────────────────────────────────────
-  const isConnected  = computed(() => !!_cfg.value.refreshToken)
-  const isConfigured = computed(() => !!_cfg.value.clientId && !!_cfg.value.clientSecret)
-  const lastSync     = computed(() => _cfg.value.lastSync)
-
-  // ── Config ───────────────────────────────────────────────────────
-  function saveConfig(clientId, clientSecret) {
-    _cfg.value.clientId     = clientId.trim()
-    _cfg.value.clientSecret = clientSecret.trim()
-    persist()
-  }
-
-  // ── Token management ─────────────────────────────────────────────
-  async function getValidToken() {
-    if (!_cfg.value.refreshToken) throw new Error('Non autenticato — connetti prima Google Fit')
-    const now = Date.now()
-    // Valido se scade tra più di 5 minuti
-    if (_cfg.value.accessToken && _cfg.value.tokenExpiry && now < _cfg.value.tokenExpiry - 300_000) {
-      return _cfg.value.accessToken
+  // ── Disponibilità ─────────────────────────────────────────────
+  async function checkAvailability() {
+    try {
+      const r = await HealthConnect.checkAvailability()
+      const status = r?.availability ?? 'unknown'
+      debugInfo.value = `HC status: ${status}`
+      // Available   → pronto
+      // NotInstalled → Android 14+ con provider outdated ma funziona lo stesso
+      // NotSupported → Android <9, non supportato
+      available.value = status === 'Available' || status === 'NotInstalled'
+    } catch (e) {
+      debugInfo.value = `checkAvailability error: ${e?.message ?? e}`
+      available.value = false
     }
-    const tokens = await refreshAccessToken(_cfg.value.clientId, _cfg.value.clientSecret, _cfg.value.refreshToken)
-    _cfg.value.accessToken = tokens.access_token
-    _cfg.value.tokenExpiry = Date.now() + tokens.expires_in * 1000
-    persist()
-    return _cfg.value.accessToken
+    return available.value
   }
 
-  // ── OAuth ────────────────────────────────────────────────────────
-  async function connect() {
-    if (!isConfigured.value) throw new Error('Inserisci prima Client ID e Client Secret')
-    await startOAuthFlow(_cfg.value.clientId)
-    // → redirect a Google, il callback viene gestito in App.vue onMounted
+  // ── Permessi ──────────────────────────────────────────────────
+  async function checkPermissions() {
+    try {
+      const r = await HealthConnect.checkHealthPermissions({ read: HC_READ, write: [] })
+      hasPerms.value  = r?.hasAllPermissions ?? false
+      debugInfo.value += ` | perms: ${JSON.stringify(r?.grantedPermissions)}`
+    } catch (e) {
+      debugInfo.value += ` | checkPerms error: ${e?.message ?? e}`
+      hasPerms.value = false
+    }
+    return hasPerms.value
   }
 
-  async function handleCallback(code) {
-    const tokens = await handleOAuthCallback(code, _cfg.value.clientId, _cfg.value.clientSecret)
-    _cfg.value.accessToken  = tokens.access_token
-    _cfg.value.refreshToken = tokens.refresh_token || _cfg.value.refreshToken
-    _cfg.value.tokenExpiry  = Date.now() + tokens.expires_in * 1000
-    persist()
-  }
-
-  // ── Sync ─────────────────────────────────────────────────────────
-  async function sync(days = 30) {
-    const token        = await getValidToken()
-    const entriesStore = useEntriesStore()
-    const stepsStore   = useStepsStore()
-    const cfgStore     = useConfigStore()
-
-    const endMs   = Date.now()
-    const startMs = endMs - days * 86_400_000
-
-    const { stepsPerDay, kcalPerDay, hrPerDay, sessions } = await fetchAllData(token, startMs, endMs)
-
-    // Aggiorna cache giornaliera
-    const allDays = new Set([
-      ...Object.keys(stepsPerDay),
-      ...Object.keys(kcalPerDay),
-      ...Object.keys(hrPerDay),
-    ])
-    allDays.forEach(dk => {
-      dailyData.value[dk] = {
-        steps: Math.round(stepsPerDay[dk] || 0),
-        kcal:  Math.round(kcalPerDay[dk]  || 0),
-        hr:    hrPerDay[dk] ? Math.round(hrPerDay[dk]) : null,
+  async function requestPermissions() {
+    try {
+      const r = await HealthConnect.requestHealthPermissions({ read: HC_READ, write: [] })
+      hasPerms.value  = r?.hasAllPermissions ?? false
+      debugInfo.value = `requestPerms: hasAll=${r?.hasAllPermissions} granted=${JSON.stringify(r?.grantedPermissions)}`
+      if (!hasPerms.value) {
+        throw new Error('Permessi non concessi — vai in Health Connect → App → GlicoLog')
       }
-    })
-
-    // Aggiorna i passi nel stepsStore (visibili in SummaryBoxes)
-    Object.entries(stepsPerDay).forEach(([dk, steps]) => {
-      if (steps > 50) stepsStore.setDay(dk, Math.round(steps))
-    })
-
-    // Importa sessioni sport non ancora presenti (deduplicazione via gfitId)
-    const existingIds = new Set(
-      entriesStore.entries
-        .filter(e => e.type === 'sport' && e.gfitId)
-        .map(e => e.gfitId)
-    )
-    const weight  = cfgStore.cfg.weight || 80
-    let newCount  = 0
-    sessions.forEach(s => {
-      if (existingIds.has(s.gfitId)) return
-      const met  = parseFloat(s.sportKey.split('|')[1]) || 4
-      const kcal = Math.round(met * weight * s.duration / 60)
-      entriesStore.add({
-        type:     'sport',
-        sport:    s.name,
-        sportKey: s.sportKey,
-        duration: s.duration,
-        kcal,
-        glic:     null,
-        trend:    '→',
-        timing:   'after',
-        note:     '📱 Google Fit',
-        ts:       s.startMs,
-        gfitId:   s.gfitId,
-      })
-      newCount++
-    })
-
-    _cfg.value.lastSync = Date.now()
-    persist()
-
-    return { syncedDays: allDays.size, newSessions: newCount }
+    } catch (e) {
+      debugInfo.value = `requestPerms error: ${e?.message ?? e}`
+      throw e
+    }
+    return true
   }
 
-  // ── Disconnect ───────────────────────────────────────────────────
-  function disconnect() {
-    _cfg.value.accessToken  = null
-    _cfg.value.refreshToken = null
-    _cfg.value.tokenExpiry  = null
-    _cfg.value.lastSync     = null
-    persist()
+  // ── Sync ──────────────────────────────────────────────────────
+  async function sync(days = 30) {
+    if (!available.value) throw new Error('Health Connect non disponibile')
+    if (!hasPerms.value)  throw new Error('Permessi non concessi — richiedili prima')
+
+    syncing.value = true
+    const stepsStore = useStepsStore()
+
+    const endTime   = new Date()
+    const startTime = new Date(endTime)
+    startTime.setDate(startTime.getDate() - days)
+    startTime.setHours(0, 0, 0, 0)
+
+    const tf = { type: 'between', startTime, endTime }
+
+    try {
+      const stepsPerDay = {}
+      const kcalPerDay  = {}
+      const hrPerDay    = {}
+
+      // ── Passi ────────────────────────────────────────────────
+      try {
+        const { records } = await HealthConnect.readRecords({ type: 'Steps', timeRangeFilter: tf })
+        for (const r of records ?? []) {
+          const dk = toDateKey(r.startTime)
+          stepsPerDay[dk] = (stepsPerDay[dk] || 0) + (r.count || 0)
+        }
+      } catch (e) { debugInfo.value += ` | steps err: ${e?.message}` }
+
+      // ── Calorie attive ───────────────────────────────────────
+      try {
+        const { records } = await HealthConnect.readRecords({ type: 'ActiveCaloriesBurned', timeRangeFilter: tf })
+        for (const r of records ?? []) {
+          const dk = toDateKey(r.startTime)
+          kcalPerDay[dk] = (kcalPerDay[dk] || 0) + toKcal(r.energy)
+        }
+      } catch (e) { debugInfo.value += ` | kcal err: ${e?.message}` }
+
+      // ── Frequenza cardiaca ───────────────────────────────────
+      try {
+        const { records } = await HealthConnect.readRecords({ type: 'HeartRateSeries', timeRangeFilter: tf })
+        const buckets = {}
+        for (const r of records ?? []) {
+          const dk = toDateKey(r.startTime)
+          if (!buckets[dk]) buckets[dk] = []
+          for (const s of r.samples ?? []) {
+            if (s.beatsPerMinute) buckets[dk].push(s.beatsPerMinute)
+          }
+        }
+        for (const [dk, vals] of Object.entries(buckets)) {
+          hrPerDay[dk] = vals.length
+            ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length)
+            : null
+        }
+      } catch (e) { debugInfo.value += ` | hr err: ${e?.message}` }
+
+      // ── Aggiorna cache ───────────────────────────────────────
+      const allDays = new Set([
+        ...Object.keys(stepsPerDay),
+        ...Object.keys(kcalPerDay),
+        ...Object.keys(hrPerDay),
+      ])
+      for (const dk of allDays) {
+        dailyData.value[dk] = {
+          steps: Math.round(stepsPerDay[dk] || 0),
+          kcal:  Math.round(kcalPerDay[dk]  || 0),
+          hr:    hrPerDay[dk] ?? null,
+        }
+      }
+
+      for (const [dk, steps] of Object.entries(stepsPerDay)) {
+        if (steps > 50) stepsStore.setDay(dk, Math.round(steps))
+      }
+
+      lastSync.value = Date.now()
+      persist()
+
+      return { syncedDays: allDays.size }
+    } finally {
+      syncing.value = false
+    }
+  }
+
+  // ── Utility ───────────────────────────────────────────────────
+  function toDateKey(d) {
+    const dt = d instanceof Date ? d : new Date(d)
+    return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`
+  }
+
+  function toKcal(energy) {
+    if (!energy) return 0
+    switch (energy.unit) {
+      case 'kilocalories': return energy.value
+      case 'calories':     return energy.value / 1000
+      case 'kilojoules':   return energy.value / 4.184
+      case 'joules':       return energy.value / 4184
+      default:             return energy.value
+    }
   }
 
   load()
 
   return {
-    cfg: _cfg,
-    dailyData,
-    isConnected,
-    isConfigured,
-    lastSync,
-    saveConfig,
-    connect,
-    handleCallback,
-    sync,
-    disconnect,
+    available, hasPerms, lastSync, dailyData, syncing, debugInfo,
+    checkAvailability, checkPermissions, requestPermissions, sync,
   }
 })

@@ -5,24 +5,39 @@
     <div class="hs-sum-hd">
       <span class="hs-sum-title">📱 Attività & Salute</span>
       <div style="display:flex;gap:6px;align-items:center">
-        <button v-if="hsStore.isConnected" class="hs-sum-btn" :disabled="syncing" @click="doSync"
-                :title="syncing ? 'Sincronizzazione...' : 'Sincronizza Google Fit'">
-          <span :class="{ 'hs-spinning': syncing }">🔄</span>
+        <button v-if="hsStore.hasPerms" class="hs-sum-btn" :disabled="hsStore.syncing" @click="doSync"
+                :title="hsStore.syncing ? 'Sincronizzazione...' : 'Sincronizza Health Connect'">
+          <span :class="{ 'hs-spinning': hsStore.syncing }">🔄</span>
         </button>
         <button class="hs-sum-btn" @click="app.openPanelFor('healthsync')" title="Impostazioni">⚙️</button>
       </div>
     </div>
 
-    <!-- CTA non connesso -->
-    <div v-if="!hsStore.isConnected" class="hs-not-connected">
+    <!-- CTA: solo su web (no Capacitor) -->
+    <div v-if="!isCapacitor" class="hs-not-connected">
       <div class="hs-nc-ico">📱</div>
-      <div class="hs-nc-title">Google Fit non connesso</div>
+      <div class="hs-nc-title">Disponibile nell'app Android</div>
       <div class="hs-nc-sub">
-        Connetti il tuo account per importare automaticamente passi, calorie bruciate e sessioni sport dal tuo Google Pixel.
+        I dati di passi, calorie e sessioni sport vengono letti direttamente da Health Connect sul tuo Google Pixel.<br/>
+        Installa l'APK per accedere a questa sezione.
       </div>
-      <button class="bsave" style="background:#4285f4;color:#fff;margin-top:14px;width:100%"
+    </div>
+
+    <!-- CTA: Health Connect non supportato -->
+    <div v-else-if="!hsStore.available" class="hs-not-connected">
+      <div class="hs-nc-ico">⚠️</div>
+      <div class="hs-nc-title">Health Connect non supportato</div>
+      <div class="hs-nc-sub">Il tuo dispositivo non supporta Health Connect (richiede Android 9+).</div>
+    </div>
+
+    <!-- CTA: permessi non concessi -->
+    <div v-else-if="!hsStore.hasPerms" class="hs-not-connected">
+      <div class="hs-nc-ico">🔒</div>
+      <div class="hs-nc-title">Permessi non concessi</div>
+      <div class="hs-nc-sub">Autorizza GlicoLog ad accedere ai dati di Health Connect per visualizzare qui passi, calorie e sessioni.</div>
+      <button class="bsave" style="background:var(--g);color:#000;margin-top:14px;width:100%"
               @click="app.openPanelFor('healthsync')">
-        🔗 Configura Google Fit →
+        🔓 Richiedi permessi →
       </button>
     </div>
 
@@ -124,7 +139,7 @@
             <div class="hs-session-name">{{ s.sport }}</div>
             <div class="hs-session-meta">{{ formatTs(s.ts) }} · {{ s.duration }}' · ~{{ s.kcal }} kcal</div>
           </div>
-          <span v-if="s.gfitId" class="hs-session-badge">Fit</span>
+          <span v-if="s.hcId" class="hs-session-badge">HC</span>
         </div>
       </div>
       <div v-else-if="period !== '1' || (period === '1' && !todayData.steps)" class="hs-empty">
@@ -164,8 +179,9 @@ const app      = useAppStore()
 const hsStore  = useHealthSyncStore()
 const entries  = useEntriesStore()
 
+const isCapacitor = !!window.Capacitor
+
 const period   = ref('7')
-const syncing  = ref(false)
 
 const stepsCanvas = ref(null)
 const kcalCanvas  = ref(null)
@@ -254,15 +270,12 @@ function formatTs(ts) {
 
 // ── Sync ─────────────────────────────────────────────────────────
 async function doSync() {
-  syncing.value = true
   try {
-    const days = Math.min(365, parseInt(period.value) || 30)
-    await hsStore.sync(days)
-    app.toast('✅ Google Fit sincronizzato')
+    const days = parseInt(period.value) === 365 ? 365 : Math.min(365, parseInt(period.value) || 30)
+    const res = await hsStore.sync(days)
+    app.toast(`✅ ${res.syncedDays} giorni sincronizzati`)
   } catch (e) {
     app.toast('❌ ' + e.message)
-  } finally {
-    syncing.value = false
   }
 }
 

@@ -1,84 +1,89 @@
 <template>
   <PanelBase :visible="visible">
-    <div class="pt">📱 Google Fit — Connessione</div>
+    <div class="pt">📱 Health Connect — Attività & Salute</div>
 
-    <!-- Status card -->
-    <div class="hs-status-card" :class="{ connected: hsStore.isConnected }">
-      <div class="hs-status-ico">{{ hsStore.isConnected ? '🟢' : '🔴' }}</div>
-      <div class="hs-status-body">
-        <div class="hs-status-title">
-          {{ hsStore.isConnected ? 'Connesso a Google Fit' : 'Non connesso' }}
-        </div>
-        <div v-if="hsStore.lastSync" class="hs-status-sub">Ultima sync: {{ lastSyncLabel }}</div>
-        <div v-else-if="!hsStore.isConnected" class="hs-status-sub">
-          Inserisci le credenziali e premi "Connetti"
-        </div>
+    <!-- Debug info — sempre visibile per diagnostica -->
+    <div v-if="hc.debugInfo" class="hc-debug">{{ hc.debugInfo }}</div>
+
+    <!-- Non disponibile su web -->
+    <div v-if="!isCapacitor" class="hc-unavail">
+      <div class="hc-unavail-ico">📱</div>
+      <div class="hc-unavail-title">Disponibile solo nell'app Android</div>
+      <div class="hc-unavail-sub">
+        Installa l'APK sul tuo Google Pixel per accedere ai dati di passi, calorie e frequenza cardiaca.
       </div>
     </div>
 
-    <!-- Credenziali OAuth -->
-    <div class="hs-section">
-      <div class="hs-section-lbl">Credenziali OAuth 2.0</div>
-      <div class="fr">
-        <span class="fl">Client ID</span>
-        <input class="fi" type="text" v-model="form.clientId"
-               placeholder="xxx.apps.googleusercontent.com" autocomplete="off" />
+    <!-- Capacitor presente ma HC non disponibile -->
+    <div v-else-if="checked && !hc.available" class="hc-unavail">
+      <div class="hc-unavail-ico">⚠️</div>
+      <div class="hc-unavail-title">Health Connect non rilevato</div>
+      <div class="hc-unavail-sub">
+        Assicurati che Health Connect sia installato e aggiornato dal Play Store.
       </div>
-      <div class="fr">
-        <span class="fl">Client Secret</span>
-        <input class="fi" :type="showSecret ? 'text' : 'password'" v-model="form.clientSecret"
-               placeholder="GOCSPX-..." autocomplete="off" />
-      </div>
-      <div style="display:flex;gap:8px;margin-top:4px">
-        <button class="bsave" style="background:var(--g);color:#000;flex:1" @click="saveConfig">
-          💾 Salva credenziali
-        </button>
-        <button class="bdel" style="flex:0;padding:0 14px" @click="showSecret = !showSecret">
-          {{ showSecret ? '🙈' : '👁️' }}
-        </button>
-      </div>
-    </div>
-
-    <!-- Azioni -->
-    <div class="hs-actions">
-      <button v-if="!hsStore.isConnected"
-              class="bsave" style="background:#4285f4;color:#fff"
-              :disabled="!hsStore.isConfigured || connecting"
-              @click="connect">
-        {{ connecting ? '⏳ Reindirizzamento...' : '🔗 Connetti Google Fit' }}
+      <button class="bsave" style="margin-top:14px;width:100%" @click="retry">
+        🔄 Riprova
       </button>
+    </div>
+
+    <!-- Controllo in corso -->
+    <div v-else-if="!checked" class="hc-unavail">
+      <div class="hc-unavail-ico">⏳</div>
+      <div class="hc-unavail-title">Verifica Health Connect...</div>
+    </div>
+
+    <!-- Disponibile -->
+    <template v-else>
+
+      <!-- Status -->
+      <div class="hs-status-card" :class="{ connected: hc.hasPerms }">
+        <div class="hs-status-ico">{{ hc.hasPerms ? '🟢' : '🟡' }}</div>
+        <div class="hs-status-body">
+          <div class="hs-status-title">
+            {{ hc.hasPerms ? 'Health Connect autorizzato' : 'Permessi non ancora concessi' }}
+          </div>
+          <div v-if="hc.lastSync" class="hs-status-sub">Ultima sync: {{ lastSyncLabel }}</div>
+          <div v-else-if="!hc.hasPerms" class="hs-status-sub">
+            Premi "Richiedi permessi" per autorizzare l'accesso ai dati
+          </div>
+        </div>
+      </div>
+
+      <!-- Richiedi permessi -->
+      <button v-if="!hc.hasPerms"
+              class="bsave" style="background:var(--g);color:#000;width:100%;margin-bottom:8px"
+              :disabled="requesting" @click="doRequestPerms">
+        {{ requesting ? '⏳ Apertura Health Connect...' : '🔓 Richiedi permessi' }}
+      </button>
+
+      <!-- Sincronizza -->
       <template v-else>
-        <button class="bsave" style="background:var(--b);color:#000"
-                :disabled="syncing" @click="doSync">
-          {{ syncing ? '⏳ Sincronizzazione...' : '🔄 Sincronizza ora (30 giorni)' }}
-        </button>
-        <button class="bdel" @click="disconnect" style="margin-top:6px">
-          🔌 Disconnetti Google Fit
-        </button>
+        <div class="hc-sync-row">
+          <button class="bsave" style="background:var(--b);color:#000;flex:1"
+                  :disabled="hc.syncing" @click="doSync(30)">
+            {{ hc.syncing ? '⏳ Sincronizzazione...' : '🔄 Sincronizza (30 giorni)' }}
+          </button>
+          <button class="bsave" style="flex:0;padding:0 14px;background:var(--card2);color:var(--txt2)"
+                  :disabled="hc.syncing" @click="doSync(7)">
+            7g
+          </button>
+        </div>
       </template>
-    </div>
 
-    <div v-if="syncResult" class="hint-box hint-info" style="margin-top:10px">
-      ✅ {{ syncResult }}
-    </div>
-    <div v-if="error" class="hint-box hint-warn" style="margin-top:10px">
-      ❌ {{ error }}
-    </div>
+      <div v-if="syncResult" class="hint-box hint-info" style="margin-top:8px">✅ {{ syncResult }}</div>
+      <div v-if="error"      class="hint-box hint-warn" style="margin-top:8px">❌ {{ error }}</div>
 
-    <!-- Guida configurazione -->
-    <div class="hs-guide">
-      <div class="hs-guide-title">📋 Come configurare (una tantum)</div>
-      <ol class="hs-guide-steps">
-        <li>Vai su <strong>console.cloud.google.com</strong> → crea progetto</li>
-        <li>API e servizi → Abilita API → cerca <strong>Fitness API</strong> → attiva</li>
-        <li>Credenziali → Crea → <strong>ID client OAuth 2.0</strong> → tipo "Applicazione web"</li>
-        <li>URI di reindirizzamento autorizzati: aggiungi<br/>
-          <code class="hs-uri">{{ redirectUri }}</code>
-        </li>
-        <li>Copia <strong>Client ID</strong> e <strong>Client Secret</strong> qui sopra</li>
-        <li>Premi "Salva credenziali" poi "Connetti Google Fit"</li>
-      </ol>
-    </div>
+      <!-- Cosa viene importato -->
+      <div class="hc-info">
+        <div class="hc-info-title">Dati importati da Health Connect</div>
+        <div class="hc-info-rows">
+          <div class="hc-info-row"><span>👣</span> Passi giornalieri</div>
+          <div class="hc-info-row"><span>🔥</span> Calorie attive</div>
+          <div class="hc-info-row"><span>❤️</span> Frequenza cardiaca media</div>
+        </div>
+      </div>
+
+    </template>
 
     <button class="bdel" @click="close" style="margin-top:4px">Chiudi</button>
   </PanelBase>
@@ -90,79 +95,73 @@ import { useAppStore } from '@/stores/app.js'
 import { useHealthSyncStore } from '@/stores/healthSync.js'
 import PanelBase from './PanelBase.vue'
 
-const app     = useAppStore()
-const hsStore = useHealthSyncStore()
+const app = useAppStore()
+const hc  = useHealthSyncStore()
 
 const visible    = ref(false)
-const showSecret = ref(false)
-const connecting = ref(false)
-const syncing    = ref(false)
+const requesting = ref(false)
 const syncResult = ref('')
 const error      = ref('')
+const checked    = ref(false)
 
-const form = ref({ clientId: '', clientSecret: '' })
-
-const redirectUri = window.location.origin + window.location.pathname.replace(/\/$/, '')
+const isCapacitor = !!window.Capacitor
 
 const lastSyncLabel = computed(() => {
-  if (!hsStore.lastSync) return ''
-  const diff = Math.round((Date.now() - hsStore.lastSync) / 60000)
+  if (!hc.lastSync) return ''
+  const diff = Math.round((Date.now() - hc.lastSync) / 60000)
   if (diff < 1)    return 'proprio adesso'
-  if (diff < 60)   return `${diff} minuti fa`
+  if (diff < 60)   return `${diff} min fa`
   if (diff < 1440) return `${Math.round(diff / 60)} ore fa`
   return `${Math.round(diff / 1440)} giorni fa`
 })
 
-watch(() => app.openPanel, p => {
+async function runCheck() {
+  checked.value = false
+  await hc.checkAvailability()
+  if (hc.available) await hc.checkPermissions()
+  checked.value = true
+}
+
+async function retry() {
+  syncResult.value = ''
+  error.value      = ''
+  await runCheck()
+}
+
+watch(() => app.openPanel, async p => {
   visible.value = p === 'healthsync'
   if (p === 'healthsync') {
-    form.value.clientId     = hsStore.cfg.clientId     || ''
-    form.value.clientSecret = hsStore.cfg.clientSecret || ''
-    syncResult.value        = ''
-    error.value             = ''
+    syncResult.value = ''
+    error.value      = ''
+    if (isCapacitor) await runCheck()
+    else checked.value = true
   }
 })
 
-function saveConfig() {
-  if (!form.value.clientId || !form.value.clientSecret) {
-    error.value = 'Inserisci sia il Client ID che il Client Secret'
-    return
-  }
-  hsStore.saveConfig(form.value.clientId, form.value.clientSecret)
-  app.toast('✅ Credenziali salvate')
-  error.value = ''
-}
-
-async function connect() {
-  error.value   = ''
-  connecting.value = true
-  try {
-    await hsStore.connect()
-    // → redirect a Google, pagina lascia l'app
-  } catch (e) {
-    error.value      = e.message
-    connecting.value = false
-  }
-}
-
-async function doSync() {
-  syncing.value    = true
-  syncResult.value = ''
+async function doRequestPerms() {
+  requesting.value = true
   error.value      = ''
   try {
-    const res        = await hsStore.sync(30)
-    syncResult.value = `Sincronizzati ${res.syncedDays} giorni · ${res.newSessions} nuove sessioni importate`
-    app.toast('✅ Google Fit sincronizzato')
+    await hc.requestPermissions()
+    app.toast('✅ Permessi concessi!')
+    await doSync(30)
   } catch (e) {
     error.value = e.message
   } finally {
-    syncing.value = false
+    requesting.value = false
   }
 }
 
-function disconnect() {
-  hsStore.disconnect()
-  app.toast('🔌 Disconnesso da Google Fit')
+async function doSync(days) {
+  syncResult.value = ''
+  error.value      = ''
+  try {
+    const res = await hc.sync(days)
+    syncResult.value = `Sincronizzati ${res.syncedDays} giorni di dati`
+    app.toast('✅ Health Connect sincronizzato')
+  } catch (e) {
+    error.value = e.message
+  }
 }
 
 function close() { app.closePanel() }

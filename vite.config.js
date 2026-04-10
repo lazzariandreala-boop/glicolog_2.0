@@ -26,7 +26,10 @@ export default defineConfig({
       }
     })
   ],
-  base: process.env.VERCEL === '1' ? '/' : '/glicolog_2.0/',
+  // CAPACITOR=1 → base '/' per APK Android
+  // VERCEL=1    → base '/' per deploy Vercel
+  // default     → '/glicolog_2.0/' per GitHub Pages
+  base: (process.env.CAPACITOR === '1' || process.env.VERCEL === '1') ? '/' : '/glicolog_2.0/',
   resolve: {
     alias: { '@': '/src' }
   }

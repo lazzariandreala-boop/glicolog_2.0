@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">GlicoLog</string>
+    <string name="title_activity_main">GlicoLog</string>
+    <string name="package_name">it.glicolog.app</string>
+    <string name="custom_url_scheme">it.glicolog.app</string>
+</resources>

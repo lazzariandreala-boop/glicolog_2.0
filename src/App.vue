@@ -185,8 +185,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useAppStore } from '@/stores/app.js'
-import { useStepsStore } from '@/stores/index.js'
-import { getDK, getDF, DI, MI, p2 } from '@/data/constants.js'
+import { getDF, p2 } from '@/data/constants.js'
 import { getToken, getGistId, syncWithGist, exportToGist } from '@/utils/gistSync.js'
 import { useHealthSyncStore } from '@/stores/healthSync.js'
 
@@ -297,23 +296,14 @@ function doInstall() {
   showInstallBanner.value = false
 }
 
-// ── Health Connect (Capacitor native) ─────────────────────────
+// ── Health Connect auto-sync all'avvio ───────────────────────
 async function autoSyncHealthConnect() {
   try {
-    if (!window.Capacitor?.Plugins?.HealthConnect) return
-    const HC = window.Capacitor.Plugins.HealthConnect
-    let avail
-    try { avail = await HC.checkAvailability() } catch { return }
-    if (!avail || avail.availability !== 'Available') return
-    const permRes = await HC.checkHealthPermissions({ permissions: [{ accessType: 'read', recordType: 'Steps' }] })
-    if (!permRes?.results?.every(r => r.granted)) return
-    const today = new Date(); today.setHours(0, 0, 0, 0)
-    const end   = new Date(); end.setHours(23, 59, 59, 999)
-    const res   = await HC.readRecords({ type: 'Steps', timeRangeFilter: { operator: 'between', startTime: today.toISOString(), endTime: end.toISOString() } })
-    if (res?.records?.length) {
-      const total = res.records.reduce((s, r) => s + (r.count || r.steps || 0), 0)
-      if (total > 0) useStepsStore().setDay(getDK(0), total)
-    }
+    await hsStore.checkAvailability()
+    if (!hsStore.available) return
+    await hsStore.checkPermissions()
+    if (!hsStore.hasPerms) return
+    await hsStore.sync(7)
   } catch {}
 }
 
@@ -336,28 +326,6 @@ onMounted(async () => {
 
   if ('serviceWorker' in navigator && !window.Capacitor?.isNativePlatform()) {
     navigator.serviceWorker.register('/sw.js').catch(() => {})
-  }
-
-  // Google Fit OAuth callback
-  const urlParams = new URLSearchParams(window.location.search)
-  const code      = urlParams.get('code')
-  const oauthErr  = urlParams.get('error')
-
-  if (code && hsStore.isConfigured) {
-    window.history.replaceState({}, document.title, window.location.pathname)
-    try {
-      await hsStore.handleCallback(code)
-      appStore.toast('✅ Google Fit connesso!')
-      await hsStore.sync(30)
-      appStore.toast('✅ Dati importati da Google Fit')
-      activeTab.value = 'health'
-    } catch (e) {
-      appStore.toast('❌ Connessione Google Fit: ' + e.message)
-      appStore.openPanelFor('healthsync')
-    }
-  } else if (oauthErr) {
-    window.history.replaceState({}, document.title, window.location.pathname)
-    appStore.toast('❌ Google Fit: ' + (oauthErr === 'access_denied' ? 'accesso negato' : oauthErr))
   }
 })
 
