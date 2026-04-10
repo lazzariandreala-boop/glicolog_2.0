@@ -13,7 +13,8 @@ export const DEF = {
   age: 32, weight: 100, height: 174, sex: 'M', activity: 1.375, goal: 'loss',
   targetMin: 100, targetMax: 160, fsi: 30, ic: 7, carbFactor: 15,
   insRapida: 'Humalog', alcMax: 5,
-  kcal: 2107, protein: 180, carbs: 130, fat: 96, fiber: 30
+  kcal: 2107, protein: 180, carbs: 130, fat: 96, fiber: 30,
+  stepsGoal: 10000,
 }
 
 // ── DATE HELPERS ──

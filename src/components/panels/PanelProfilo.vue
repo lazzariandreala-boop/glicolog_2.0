@@ -84,6 +84,13 @@
           </select>
         </div>
 
+        <div class="pdiv">👟 Attività fisica</div>
+        <div class="pf-field">
+          <span class="pf-label">OBIETTIVO PASSI GIORNALIERO</span>
+          <input class="fi pf-input" type="number" inputmode="numeric" v-model.number="form.stepsGoal" placeholder="es. 10000" />
+          <span class="pf-hint">Usato per colorare il grafico e il riepilogo salute</span>
+        </div>
+
         <div class="pdiv">🍺 Limite alcolico</div>
         <div class="pf-field">
           <span class="pf-label">UNITÀ MAX A SETTIMANA</span>
@@ -173,7 +180,7 @@ const goalOpts = [
 const rapidaOpts = ['Humalog','Novorapid','Fiasp','Apidra','Lyumjev','Admelog','Regular']
 const basaleOpts = ['Lantus','Toujeo','Tresiba','Levemir','Basaglar','Semglee','Ryzodeg']
 
-const form = ref({ age: null, weight: null, height: null, sex: 'M', activity: '1.375', goal: 'maintain', targetMin: null, targetMax: null, fsi: null, ic: null, insRapida: 'Humalog', insBasale: '', alcMax: null })
+const form = ref({ age: null, weight: null, height: null, sex: 'M', activity: '1.375', goal: 'maintain', targetMin: null, targetMax: null, fsi: null, ic: null, insRapida: 'Humalog', insBasale: '', alcMax: null, stepsGoal: 10000 })
 
 // TDEE calcolato (Harris-Benedict)
 const tdee = computed(() => {
@@ -261,6 +268,7 @@ watch(() => app.openPanel, (p) => {
       insRapida: saved.insRapida ?? 'Humalog',
       insBasale: saved.insBasale ?? '',
       alcMax:    saved.alcMax    ?? null,
+      stepsGoal: saved.stepsGoal ?? 10000,
     }
     currentTheme.value = appStore.theme
     gistToken.value = getToken()

@@ -1,9 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useStepsStore } from './index.js'
-
-// Import statico — Vite lo bundlerà correttamente nell'APK
-// In un browser normale l'import funziona ma il plugin nativo non risponde
 import { HealthConnect } from 'capacitor-health-connect'
 
 const HS_KEY  = 'gl_healthsync_hc_v1'
@@ -13,9 +10,9 @@ export const useHealthSyncStore = defineStore('healthsync', () => {
   const available  = ref(false)
   const hasPerms   = ref(false)
   const lastSync   = ref(null)
-  const dailyData  = ref({})      // { 'YYYY-MM-DD': { steps, kcal, hr } }
+  const dailyData  = ref({})
   const syncing    = ref(false)
-  const debugInfo  = ref('')      // visibile nell'UI per diagnostica
+  const debugInfo  = ref('')
 
   // ── Persistenza ──────────────────────────────────────────────
   function load() {
@@ -25,39 +22,31 @@ export const useHealthSyncStore = defineStore('healthsync', () => {
       if (raw.daily)    Object.assign(dailyData.value, raw.daily)
     } catch {}
   }
-
   function persist() {
-    localStorage.setItem(HS_KEY, JSON.stringify({
-      lastSync: lastSync.value,
-      daily:    dailyData.value,
-    }))
+    localStorage.setItem(HS_KEY, JSON.stringify({ lastSync: lastSync.value, daily: dailyData.value }))
   }
 
-  // ── Disponibilità ─────────────────────────────────────────────
+  // ── Disponibilità / Permessi ──────────────────────────────────
   async function checkAvailability() {
     try {
       const r = await HealthConnect.checkAvailability()
-      const status = r?.availability ?? 'unknown'
-      debugInfo.value = `HC status: ${status}`
-      // Available   → pronto
-      // NotInstalled → Android 14+ con provider outdated ma funziona lo stesso
-      // NotSupported → Android <9, non supportato
-      available.value = status === 'Available' || status === 'NotInstalled'
+      const s = r?.availability ?? 'unknown'
+      debugInfo.value = `HC: ${s}`
+      available.value = s === 'Available' || s === 'NotInstalled'
     } catch (e) {
-      debugInfo.value = `checkAvailability error: ${e?.message ?? e}`
+      debugInfo.value = `avail error: ${e?.message ?? e}`
       available.value = false
     }
     return available.value
   }
 
-  // ── Permessi ──────────────────────────────────────────────────
   async function checkPermissions() {
     try {
       const r = await HealthConnect.checkHealthPermissions({ read: HC_READ, write: [] })
-      hasPerms.value  = r?.hasAllPermissions ?? false
-      debugInfo.value += ` | perms: ${JSON.stringify(r?.grantedPermissions)}`
+      hasPerms.value = r?.hasAllPermissions ?? false
+      debugInfo.value += ` perms:${hasPerms.value}`
     } catch (e) {
-      debugInfo.value += ` | checkPerms error: ${e?.message ?? e}`
+      debugInfo.value += ` permErr:${e?.message}`
       hasPerms.value = false
     }
     return hasPerms.value
@@ -66,13 +55,11 @@ export const useHealthSyncStore = defineStore('healthsync', () => {
   async function requestPermissions() {
     try {
       const r = await HealthConnect.requestHealthPermissions({ read: HC_READ, write: [] })
-      hasPerms.value  = r?.hasAllPermissions ?? false
-      debugInfo.value = `requestPerms: hasAll=${r?.hasAllPermissions} granted=${JSON.stringify(r?.grantedPermissions)}`
-      if (!hasPerms.value) {
-        throw new Error('Permessi non concessi — vai in Health Connect → App → GlicoLog')
-      }
+      hasPerms.value = r?.hasAllPermissions ?? false
+      debugInfo.value = `reqPerms: ${JSON.stringify(r?.grantedPermissions)}`
+      if (!hasPerms.value) throw new Error('Permessi non concessi — vai in Health Connect → App → GlicoLog')
     } catch (e) {
-      debugInfo.value = `requestPerms error: ${e?.message ?? e}`
+      debugInfo.value = `reqPermErr: ${e?.message}`
       throw e
     }
     return true
@@ -81,16 +68,17 @@ export const useHealthSyncStore = defineStore('healthsync', () => {
   // ── Sync ──────────────────────────────────────────────────────
   async function sync(days = 30) {
     if (!available.value) throw new Error('Health Connect non disponibile')
-    if (!hasPerms.value)  throw new Error('Permessi non concessi — richiedili prima')
+    if (!hasPerms.value)  throw new Error('Permessi non concessi')
 
     syncing.value = true
+    debugInfo.value = `Sync ${days}g...`
     const stepsStore = useStepsStore()
 
-    const endTime   = new Date()
-    const startTime = new Date(endTime)
-    startTime.setDate(startTime.getDate() - days)
-    startTime.setHours(0, 0, 0, 0)
-
+    const endTime   = new Date().toISOString()
+    const _start    = new Date()
+    _start.setDate(_start.getDate() - days)
+    _start.setHours(0, 0, 0, 0)
+    const startTime = _start.toISOString()
     const tf = { type: 'between', startTime, endTime }
 
     try {
@@ -99,32 +87,62 @@ export const useHealthSyncStore = defineStore('healthsync', () => {
       const hrPerDay    = {}
 
       // ── Passi ────────────────────────────────────────────────
+      // Health Connect gestisce già la deduplicazione tra sorgenti:
+      // restituisce i record dal provider con priorità più alta.
+      // Sommiamo direttamente tutti i record per giorno.
       try {
         const { records } = await HealthConnect.readRecords({ type: 'Steps', timeRangeFilter: tf })
-        for (const r of records ?? []) {
-          const dk = toDateKey(r.startTime)
-          stepsPerDay[dk] = (stepsPerDay[dk] || 0) + (r.count || 0)
+        const recs = records ?? []
+        debugInfo.value += ` steps:${recs.length}rec`
+
+        // Log struttura primo record per debug
+        if (recs.length > 0) {
+          const sample = recs[0]
+          debugInfo.value += ` [st:${typeof sample.startTime}|cnt:${sample.count ?? sample.steps ?? '?'}]`
         }
-      } catch (e) { debugInfo.value += ` | steps err: ${e?.message}` }
+
+        for (const r of recs) {
+          const startMs = toMs(r.startTime)
+          if (!startMs) continue
+          const dk    = toDateKey(startMs)
+          // Il plugin può usare r.count oppure r.steps a seconda della versione
+          const count = r.count ?? r.steps ?? 0
+          stepsPerDay[dk] = (stepsPerDay[dk] || 0) + count
+        }
+
+        debugInfo.value += ` stTotal:${Object.values(stepsPerDay).reduce((a,b)=>a+b,0)|0}`
+      } catch (e) {
+        debugInfo.value += ` stepsErr:${e?.message}`
+      }
 
       // ── Calorie attive ───────────────────────────────────────
       try {
         const { records } = await HealthConnect.readRecords({ type: 'ActiveCaloriesBurned', timeRangeFilter: tf })
-        for (const r of records ?? []) {
-          const dk = toDateKey(r.startTime)
+        const recs = records ?? []
+        debugInfo.value += ` kcal:${recs.length}rec`
+
+        for (const r of recs) {
+          const startMs = toMs(r.startTime)
+          if (!startMs) continue
+          const dk = toDateKey(startMs)
           kcalPerDay[dk] = (kcalPerDay[dk] || 0) + toKcal(r.energy)
         }
-      } catch (e) { debugInfo.value += ` | kcal err: ${e?.message}` }
+      } catch (e) {
+        debugInfo.value += ` kcalErr:${e?.message}`
+      }
 
       // ── Frequenza cardiaca ───────────────────────────────────
       try {
         const { records } = await HealthConnect.readRecords({ type: 'HeartRateSeries', timeRangeFilter: tf })
         const buckets = {}
         for (const r of records ?? []) {
-          const dk = toDateKey(r.startTime)
+          const startMs = toMs(r.startTime)
+          if (!startMs) continue
+          const dk = toDateKey(startMs)
           if (!buckets[dk]) buckets[dk] = []
           for (const s of r.samples ?? []) {
-            if (s.beatsPerMinute) buckets[dk].push(s.beatsPerMinute)
+            const bpm = s.beatsPerMinute ?? s.bpm ?? 0
+            if (bpm > 20 && bpm < 250) buckets[dk].push(bpm)
           }
         }
         for (const [dk, vals] of Object.entries(buckets)) {
@@ -132,14 +150,17 @@ export const useHealthSyncStore = defineStore('healthsync', () => {
             ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length)
             : null
         }
-      } catch (e) { debugInfo.value += ` | hr err: ${e?.message}` }
+      } catch (e) {
+        debugInfo.value += ` hrErr:${e?.message}`
+      }
 
-      // ── Aggiorna cache ───────────────────────────────────────
+      // ── Aggiorna store ───────────────────────────────────────
       const allDays = new Set([
         ...Object.keys(stepsPerDay),
         ...Object.keys(kcalPerDay),
         ...Object.keys(hrPerDay),
       ])
+
       for (const dk of allDays) {
         dailyData.value[dk] = {
           steps: Math.round(stepsPerDay[dk] || 0),
@@ -148,13 +169,14 @@ export const useHealthSyncStore = defineStore('healthsync', () => {
         }
       }
 
+      // Aggiorna anche lo store passi globale
       for (const [dk, steps] of Object.entries(stepsPerDay)) {
-        if (steps > 50) stepsStore.setDay(dk, Math.round(steps))
+        if (steps > 10) stepsStore.setDay(dk, Math.round(steps))
       }
 
+      debugInfo.value += ` → ${allDays.size}gg OK`
       lastSync.value = Date.now()
       persist()
-
       return { syncedDays: allDays.size }
     } finally {
       syncing.value = false
@@ -162,13 +184,41 @@ export const useHealthSyncStore = defineStore('healthsync', () => {
   }
 
   // ── Utility ───────────────────────────────────────────────────
-  function toDateKey(d) {
-    const dt = d instanceof Date ? d : new Date(d)
-    return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`
+
+  // Converte il timestamp del plugin in ms epoch.
+  // Il plugin può restituire: string ISO, number (ms), number (secondi),
+  // oppure oggetto { epochSecond, nano } come fa la SDK Java/Kotlin sottostante.
+  function toMs(t) {
+    if (!t) return 0
+    if (typeof t === 'number') {
+      // Se è in secondi (Unix timestamp < anno 2100 in ms ≈ 4e12)
+      return t > 1e12 ? t : t * 1000
+    }
+    if (typeof t === 'string') {
+      const ms = Date.parse(t)
+      return isFinite(ms) ? ms : 0
+    }
+    // Oggetto { epochSecond, nano } — formato Kotlin Instant serializzato
+    if (typeof t === 'object' && t.epochSecond != null) {
+      return t.epochSecond * 1000 + Math.round((t.nano || 0) / 1_000_000)
+    }
+    return 0
+  }
+
+  // 'YYYY-MM-DD' in timezone locale
+  function toDateKey(ms) {
+    const d = new Date(ms)
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const g = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${g}`
   }
 
   function toKcal(energy) {
     if (!energy) return 0
+    // Formato v0.7: { value, unit } oppure { inKilocalories }
+    if (energy.inKilocalories != null) return energy.inKilocalories
+    if (energy.value == null) return 0
     switch (energy.unit) {
       case 'kilocalories': return energy.value
       case 'calories':     return energy.value / 1000

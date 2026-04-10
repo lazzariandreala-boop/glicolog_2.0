@@ -154,6 +154,7 @@
           <button class="hg-btn hg-ins"   @click="appStore.openPanelFor('insulina')"><span class="hg-ico">💉</span><span class="hg-lbl">Insulina</span></button>
           <button class="hg-btn hg-cor"   @click="appStore.openPanelFor('correzione')"><span class="hg-ico">🍬</span><span class="hg-lbl">Correzione</span></button>
           <button class="hg-btn hg-aperi" @click="appStore.openPanelFor('aperitivi')"><span class="hg-ico">🥂</span><span class="hg-lbl">Aperitivo</span></button>
+          <button class="hg-btn hg-intim" @click="appStore.openPanelFor('intimacy')"><span class="hg-ico">❤️</span><span class="hg-lbl">Intimità</span></button>
           <button class="hg-btn hg-glic hg-full" @click="appStore.openPanelFor('glicemia')"><span class="hg-ico">🩸</span><span class="hg-lbl">Glicemia</span></button>
         </div>
       </div>
@@ -171,6 +172,7 @@
     <PanelSport />
     <PanelCorrezione />
     <PanelAperitivi />
+    <PanelIntimacy />
     <PanelProfilo />
     <PanelHealthSync />
 
@@ -211,6 +213,7 @@ import PanelAlcool      from '@/components/panels/PanelAlcool.vue'
 import PanelSport       from '@/components/panels/PanelSport.vue'
 import PanelCorrezione  from '@/components/panels/PanelCorrezione.vue'
 import PanelAperitivi   from '@/components/panels/PanelAperitivi.vue'
+import PanelIntimacy    from '@/components/panels/PanelIntimacy.vue'
 import PanelProfilo     from '@/components/panels/PanelProfilo.vue'
 import PanelHealthSync  from '@/components/panels/PanelHealthSync.vue'
 
@@ -251,6 +254,7 @@ const deskActions = [
   { panel: 'correzione', ico: '🍬', lbl: 'Correzione ipo' },
   { panel: 'spuntino',   ico: '🍎', lbl: 'Spuntino' },
   { panel: 'aperitivi',  ico: '🥂', lbl: 'Aperitivo / Alcool' },
+  { panel: 'intimacy',   ico: '❤️', lbl: 'Attività intima' },
 ]
 
 const deskCurrentTitle = computed(() => deskTabs.find(t => t.v === activeTab.value)?.lbl ?? '')

@@ -3,7 +3,10 @@
     <div class="pt">📱 Health Connect — Attività & Salute</div>
 
     <!-- Debug info — sempre visibile per diagnostica -->
-    <div v-if="hc.debugInfo" class="hc-debug">{{ hc.debugInfo }}</div>
+    <div v-if="hc.debugInfo" class="hc-debug">
+      {{ hc.debugInfo }}<br/>
+      <span style="color:var(--txt2);font-size:.7rem">giorni in cache: {{ Object.keys(hc.dailyData).length }}</span>
+    </div>
 
     <!-- Non disponibile su web -->
     <div v-if="!isCapacitor" class="hc-unavail">

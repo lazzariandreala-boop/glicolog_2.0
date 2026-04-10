@@ -625,6 +625,7 @@ body.light-mode .bnav { background: rgba(255,255,255,.92) }
 .hg-cor   { background: linear-gradient(145deg, rgba(255,171,64,.15) 0%, rgba(255,109,0,.04) 100%);  border-color: rgba(255,171,64,.32);  color: var(--o);  box-shadow: 0 4px 20px rgba(255,171,64,.10) }
 .hg-aperi { background: linear-gradient(145deg, rgba(128,203,196,.17) 0%, rgba(0,150,136,.04) 100%); border-color: rgba(128,203,196,.34); color: var(--nut); box-shadow: 0 4px 20px rgba(128,203,196,.12) }
 .hg-sport { background: linear-gradient(145deg, rgba(3,169,244,.17) 0%, rgba(2,136,209,.04) 100%);  border-color: rgba(3,169,244,.34);  color: #03a9f4; box-shadow: 0 4px 20px rgba(3,169,244,.12) }
+.hg-intim { background: linear-gradient(145deg, rgba(255,82,82,.17) 0%, rgba(233,30,99,.04) 100%);   border-color: rgba(255,82,82,.34);   color: var(--r); box-shadow: 0 4px 20px rgba(255,82,82,.12) }
 .hg-full  { grid-column: 1 / -1 }
 
 /* ── QUICK ADD SHEET ── */
@@ -995,8 +996,8 @@ body.light-mode .mood-btn.on { border-color: var(--o); background: rgba(194,129,
 /* Charts */
 .hs-chart-section { margin-bottom: 16px }
 .hs-chart-lbl { font-size: .66rem; color: var(--txt2); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px }
-.hs-chart-wrap { width: 100%; overflow: hidden; border-radius: 10px; background: var(--card); border: 1px solid var(--bdr); padding: 10px 8px 4px }
-.hs-canvas { display: block; width: 100% }
+.hs-chart-wrap { width: 100%; border-radius: 10px; background: var(--card); border: 1px solid var(--bdr); padding: 10px 8px 4px; position: relative }
+.hs-canvas { display: block; width: 100%; border-radius: 8px }
 
 /* Today view */
 .hs-today-grid { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px }
@@ -1051,3 +1052,27 @@ body.light-mode .mood-btn.on { border-color: var(--o); background: rgba(194,129,
 .hc-info-row { display: flex; align-items: center; gap: 10px; font-size: .78rem; color: var(--txt3) }
 .hc-info-row span { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0 }
 .hc-debug { font-family: var(--mono); font-size: .62rem; color: var(--o); background: rgba(255,171,64,.07); border: 1px solid rgba(255,171,64,.2); border-radius: 8px; padding: 6px 10px; margin-bottom: 10px; word-break: break-all; line-height: 1.4 }
+
+/* ── CHART TOOLTIP ── */
+.hs-tooltip {
+  position: absolute;
+  top: 8px;
+  transform: translateX(-50%);
+  background: var(--card2);
+  border: 1px solid var(--bdr2);
+  border-radius: 10px;
+  padding: 7px 12px;
+  pointer-events: none;
+  z-index: 10;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0,0,0,.35);
+  min-width: 100px;
+  text-align: center;
+}
+.hs-tooltip-date { font-size: .62rem; color: var(--txt2); margin-bottom: 2px }
+.hs-tooltip-val  { font-family: var(--mono); font-size: .88rem; font-weight: 600; color: var(--txt) }
+.hs-tooltip-sub  { font-size: .6rem; color: var(--txt2); margin-top: 2px }
+
+/* ── CHART LEGEND ── */
+.hs-chart-legend { display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; font-size: .6rem; color: var(--txt2); font-weight: 400 }
+.hs-leg-dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; margin-left: 4px }
