@@ -17,25 +17,28 @@ export function setGistId(id){ localStorage.setItem(GIST_ID_KEY, id.trim()) }
 // Raccoglie tutti i dati da localStorage in un unico oggetto
 function collectData() {
   return {
-    glicolog_v2:      JSON.parse(localStorage.getItem('glicolog_v2')      || '[]'),
-    glicolog_cfg6:    JSON.parse(localStorage.getItem('glicolog_cfg6')    || '{}'),
-    gl_steps:         JSON.parse(localStorage.getItem('gl_steps')         || '[]'),
-    glicolog_fooddb7: JSON.parse(localStorage.getItem('glicolog_fooddb7') || '{}'),
-    exported_at:      new Date().toISOString(),
-    version:          '2'
+    glicolog_v2:          JSON.parse(localStorage.getItem('glicolog_v2')          || '[]'),
+    glicolog_cfg6:        JSON.parse(localStorage.getItem('glicolog_cfg6')        || '{}'),
+    gl_steps:             JSON.parse(localStorage.getItem('gl_steps')             || '[]'),
+    glicolog_fooddb7:     JSON.parse(localStorage.getItem('glicolog_fooddb7')     || '{}'),
+    gl_healthsync_hc_v1:  JSON.parse(localStorage.getItem('gl_healthsync_hc_v1') || '{}'),
+    exported_at:          new Date().toISOString(),
+    version:              '3',
   }
 }
 
 // Ripristina i dati nel localStorage
 function restoreData(data) {
   if (Array.isArray(data.glicolog_v2))
-    localStorage.setItem('glicolog_v2',      JSON.stringify(data.glicolog_v2))
+    localStorage.setItem('glicolog_v2',          JSON.stringify(data.glicolog_v2))
   if (data.glicolog_cfg6 && typeof data.glicolog_cfg6 === 'object')
-    localStorage.setItem('glicolog_cfg6',    JSON.stringify(data.glicolog_cfg6))
+    localStorage.setItem('glicolog_cfg6',        JSON.stringify(data.glicolog_cfg6))
   if (Array.isArray(data.gl_steps))
-    localStorage.setItem('gl_steps',         JSON.stringify(data.gl_steps))
+    localStorage.setItem('gl_steps',             JSON.stringify(data.gl_steps))
   if (data.glicolog_fooddb7 && typeof data.glicolog_fooddb7 === 'object')
-    localStorage.setItem('glicolog_fooddb7', JSON.stringify(data.glicolog_fooddb7))
+    localStorage.setItem('glicolog_fooddb7',     JSON.stringify(data.glicolog_fooddb7))
+  if (data.gl_healthsync_hc_v1 && typeof data.gl_healthsync_hc_v1 === 'object')
+    localStorage.setItem('gl_healthsync_hc_v1', JSON.stringify(data.gl_healthsync_hc_v1))
 }
 
 async function ghFetch(url, options = {}) {
@@ -58,7 +61,6 @@ async function ghFetch(url, options = {}) {
 }
 
 // ── EXPORT ──────────────────────────────────────────────────────
-// Crea un nuovo Gist o aggiorna quello esistente
 export async function exportToGist() {
   const gistId = getGistId()
   const body = {
@@ -77,7 +79,6 @@ export async function exportToGist() {
 }
 
 // ── IMPORT ──────────────────────────────────────────────────────
-// Scarica il Gist e ripristina i dati; restituisce i dati importati
 export async function importFromGist() {
   const gistId = getGistId()
   if (!gistId) throw new Error('Gist ID mancante — esegui prima un export')
@@ -85,7 +86,6 @@ export async function importFromGist() {
   const gist     = await ghFetch(`https://api.github.com/gists/${gistId}`)
   const fileInfo = gist.files?.[GIST_FILE]
   if (!fileInfo) throw new Error(`File ${GIST_FILE} non trovato nel Gist`)
-
   if (fileInfo.truncated)
     throw new Error('Il backup su Gist supera 1 MB. Riesporta dal dispositivo principale, poi ritenta.')
 
@@ -99,7 +99,6 @@ export async function importFromGist() {
 }
 
 // ── SYNC (pull → merge → push) ───────────────────────────────────
-// Scarica il Gist, unisce con i dati locali senza perdite, poi salva.
 export async function syncWithGist() {
   const gistId = getGistId()
   if (!gistId) throw new Error('Gist ID mancante — esegui prima un export dal Profilo')
@@ -107,7 +106,6 @@ export async function syncWithGist() {
   const gist     = await ghFetch(`https://api.github.com/gists/${gistId}`)
   const fileInfo = gist.files?.[GIST_FILE]
   if (!fileInfo) throw new Error(`File ${GIST_FILE} non trovato nel Gist`)
-
   if (fileInfo.truncated)
     throw new Error('Il backup su Gist supera 1 MB. Riesporta dal dispositivo principale, poi ritenta.')
 
@@ -117,35 +115,60 @@ export async function syncWithGist() {
   const remote = JSON.parse(content)
   const local  = collectData()
 
-  // Merge entries per id (unione senza duplicati)
+  // ── Entries: unione per id, il più recente (ts) vince ─────────
   const entriesById = {}
-  ;[...(local.glicolog_v2 || []), ...(remote.glicolog_v2 || [])].forEach(e => {
-    if (e?.id) entriesById[e.id] = e
+  ;[...(remote.glicolog_v2 || []), ...(local.glicolog_v2 || [])].forEach(e => {
+    if (!e?.id) return
+    const existing = entriesById[e.id]
+    // Tieni la versione con ts più recente (ultima modifica)
+    if (!existing || (e.ts || 0) > (existing.ts || 0)) entriesById[e.id] = e
   })
 
-  // Merge steps per data (il remote vince in caso di conflitto)
+  // ── Steps per data: il maggiore vince (dati HC più completi) ───
   const stepsByDate = {}
   ;[...(local.gl_steps || []), ...(remote.gl_steps || [])].forEach(s => {
-    if (s?.date) stepsByDate[s.date] = s
+    if (!s?.date) return
+    if (!stepsByDate[s.date] || s.steps > stepsByDate[s.date].steps)
+      stepsByDate[s.date] = s
   })
 
-  // Merge fooddb per chiave (unione, il remote vince)
+  // ── FoodDB: unione, il remote vince sui conflitti ──────────────
   const fooddb = { ...(local.glicolog_fooddb7 || {}), ...(remote.glicolog_fooddb7 || {}) }
 
+  // ── Config: il remote vince (unica sorgente di verità) ─────────
+  const cfg = remote.glicolog_cfg6 || local.glicolog_cfg6
+
+  // ── Health Connect: merge per giorno, il maggiore vince ────────
+  const localHC  = local.gl_healthsync_hc_v1  || {}
+  const remoteHC = remote.gl_healthsync_hc_v1 || {}
+  const localDaily  = localHC.daily  || {}
+  const remoteDaily = remoteHC.daily || {}
+  const mergedDaily = { ...localDaily }
+  for (const [dk, rd] of Object.entries(remoteDaily)) {
+    const ld = mergedDaily[dk]
+    if (!ld || (rd.steps || 0) > (ld.steps || 0)) mergedDaily[dk] = rd
+  }
+  const mergedHC = {
+    lastSync: Math.max(localHC.lastSync || 0, remoteHC.lastSync || 0) || null,
+    daily: mergedDaily,
+  }
+
   const merged = {
-    glicolog_v2:      Object.values(entriesById),
-    glicolog_cfg6:    remote.glicolog_cfg6 || local.glicolog_cfg6,
-    gl_steps:         Object.values(stepsByDate),
-    glicolog_fooddb7: fooddb,
-    exported_at:      new Date().toISOString(),
-    version:          '2'
+    glicolog_v2:         Object.values(entriesById),
+    glicolog_cfg6:       cfg,
+    gl_steps:            Object.values(stepsByDate),
+    glicolog_fooddb7:    fooddb,
+    gl_healthsync_hc_v1: mergedHC,
+    exported_at:         new Date().toISOString(),
+    version:             '3',
   }
 
   // Salva il merged localmente
-  localStorage.setItem('glicolog_v2',      JSON.stringify(merged.glicolog_v2))
-  localStorage.setItem('glicolog_cfg6',    JSON.stringify(merged.glicolog_cfg6))
-  localStorage.setItem('gl_steps',         JSON.stringify(merged.gl_steps))
-  localStorage.setItem('glicolog_fooddb7', JSON.stringify(merged.glicolog_fooddb7))
+  localStorage.setItem('glicolog_v2',          JSON.stringify(merged.glicolog_v2))
+  localStorage.setItem('glicolog_cfg6',        JSON.stringify(merged.glicolog_cfg6))
+  localStorage.setItem('gl_steps',             JSON.stringify(merged.gl_steps))
+  localStorage.setItem('glicolog_fooddb7',     JSON.stringify(merged.glicolog_fooddb7))
+  localStorage.setItem('gl_healthsync_hc_v1', JSON.stringify(merged.gl_healthsync_hc_v1))
 
   // Push del merged su Gist
   const body = {

@@ -154,8 +154,8 @@
           <button class="hg-btn hg-ins"   @click="appStore.openPanelFor('insulina')"><span class="hg-ico">💉</span><span class="hg-lbl">Insulina</span></button>
           <button class="hg-btn hg-cor"   @click="appStore.openPanelFor('correzione')"><span class="hg-ico">🍬</span><span class="hg-lbl">Correzione</span></button>
           <button class="hg-btn hg-aperi" @click="appStore.openPanelFor('aperitivi')"><span class="hg-ico">🥂</span><span class="hg-lbl">Aperitivo</span></button>
+          <button class="hg-btn hg-glic" @click="appStore.openPanelFor('glicemia')"><span class="hg-ico">🩸</span><span class="hg-lbl">Glicemia</span></button> <!-- hg-full -->
           <button class="hg-btn hg-intim" @click="appStore.openPanelFor('intimacy')"><span class="hg-ico">❤️</span><span class="hg-lbl">Intimità</span></button>
-          <button class="hg-btn hg-glic hg-full" @click="appStore.openPanelFor('glicemia')"><span class="hg-ico">🩸</span><span class="hg-lbl">Glicemia</span></button>
         </div>
       </div>
     </template>

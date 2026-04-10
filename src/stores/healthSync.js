@@ -65,6 +65,29 @@ export const useHealthSyncStore = defineStore('healthsync', () => {
     return true
   }
 
+  // ── Legge tutti i record con paginazione automatica ───────────
+  // Il plugin ha un pageSize default basso (spesso 1000 record).
+  // Con 30 giorni di campionamenti al minuto (43.200 record/sorgente)
+  // serve paginaré altrimenti si fermano ai primissimi giorni.
+  async function readAllRecords(type, tf) {
+    const all = []
+    let pageToken = undefined
+    const PAGE = 5000  // richiedi 5000 per volta, riduce roundtrips
+    let page = 0
+    do {
+      const opts = { type, timeRangeFilter: tf, pageSize: PAGE }
+      if (pageToken) opts.pageToken = pageToken
+      const res = await HealthConnect.readRecords(opts)
+      const recs = res?.records ?? []
+      all.push(...recs)
+      pageToken = res?.pageToken ?? null
+      page++
+      // Sicurezza: max 20 pagine (100.000 record) per tipo
+      if (page >= 20) break
+    } while (pageToken)
+    return all
+  }
+
   // ── Sync ──────────────────────────────────────────────────────
   async function sync(days = 30) {
     if (!available.value) throw new Error('Health Connect non disponibile')
@@ -88,19 +111,19 @@ export const useHealthSyncStore = defineStore('healthsync', () => {
 
       // ── Passi ────────────────────────────────────────────────
       // HC restituisce record da TUTTE le sorgenti (pedometro sistema,
-      // Google Fit, Samsung Health, ecc.) che spesso si sovrappongono.
-      // Usiamo deduplicazione per intervalli: ordiniamo per durata
-      // DECRESCENTE così i record lunghi (sintesi giornaliera) coprono
-      // per primi e quelli corti (campionamenti al minuto) non si sommano.
+      // Google Fit, Samsung Health, ecc.) che si sovrappongono.
+      // Deduplicazione per intervalli: ordiniamo per durata DECRESCENTE
+      // così i record lunghi (sintesi giornaliera) coprono per primi
+      // e quelli corti (campionamenti al minuto) contribuiscono 0.
       try {
-        const { records } = await HealthConnect.readRecords({ type: 'Steps', timeRangeFilter: tf })
-        const recs = records ?? []
+        const recs = await readAllRecords('Steps', tf)
         debugInfo.value += ` steps:${recs.length}rec`
 
-        // Mostra struttura raw del primo record per diagnostica
+        // Log struttura primo record per diagnostica
         if (recs.length > 0) {
           const s = recs[0]
-          debugInfo.value += ` [st:${JSON.stringify(s.startTime).slice(0,20)} cnt:${s.count ?? s.steps ?? '?'}]`
+          const stKey = JSON.stringify(s.startTime).slice(0, 25)
+          debugInfo.value += ` [${stKey} cnt:${s.count ?? s.steps ?? '?'}]`
         }
 
         // Raggruppa per giorno
@@ -126,9 +149,9 @@ export const useHealthSyncStore = defineStore('healthsync', () => {
 
       // ── Calorie attive ───────────────────────────────────────
       try {
-        const { records } = await HealthConnect.readRecords({ type: 'ActiveCaloriesBurned', timeRangeFilter: tf })
+        const recs = await readAllRecords('ActiveCaloriesBurned', tf)
         const byDay = {}
-        for (const r of records ?? []) {
+        for (const r of recs) {
           const startMs = toMs(r.startTime)
           const endMs   = toMs(r.endTime) || (startMs + 60_000)
           if (!startMs || endMs <= startMs) continue
@@ -145,9 +168,9 @@ export const useHealthSyncStore = defineStore('healthsync', () => {
 
       // ── Frequenza cardiaca ───────────────────────────────────
       try {
-        const { records } = await HealthConnect.readRecords({ type: 'HeartRateSeries', timeRangeFilter: tf })
+        const recs = await readAllRecords('HeartRateSeries', tf)
         const buckets = {}
-        for (const r of records ?? []) {
+        for (const r of recs) {
           const startMs = toMs(r.startTime)
           if (!startMs) continue
           const dk = toDateKey(startMs)
@@ -201,9 +224,7 @@ export const useHealthSyncStore = defineStore('healthsync', () => {
   // oppure oggetto Kotlin Instant { epochSecond, nano }.
   function toMs(t) {
     if (!t) return 0
-    if (typeof t === 'number') {
-      return t > 1e12 ? t : t * 1000  // secondi vs millisecondi
-    }
+    if (typeof t === 'number') return t > 1e12 ? t : t * 1000
     if (typeof t === 'string') {
       const ms = Date.parse(t)
       return isFinite(ms) ? ms : 0
@@ -237,28 +258,20 @@ export const useHealthSyncStore = defineStore('healthsync', () => {
   }
 
   // Somma intervalli {start, end, count} senza doppio conteggio.
-  //
-  // ORDINAMENTO PER DURATA DECRESCENTE: i record lunghi (es. sintesi
-  // giornaliera di Google Fit) coprono per primi l'intero arco temporale.
-  // I record corti (es. campionamenti al minuto del pedometro) trovano
-  // tutto già coperto e contribuiscono con 0 → nessun doppio conteggio.
-  //
-  // Se invece i record sono tutti della stessa granularità (es. tutti da
-  // 1 minuto, senza overlap) la proporzione uncovered/total = 1 e somma
-  // correttamente tutti i passi.
+  // ORDINAMENTO PER DURATA DECRESCENTE: i record lunghi (sintesi
+  // giornaliera) coprono per primi; i record corti (campionamenti
+  // al minuto) trovano tutto già coperto e contribuiscono 0.
   function sumNonOverlapping(recs) {
     if (!recs.length) return 0
-
-    // Ordina per durata DECRESCENTE (record più lunghi prima)
+    // Ordina per durata DECRESCENTE
     recs.sort((a, b) => (b.end - b.start) - (a.end - a.start))
 
     let total = 0
-    const covered = []   // lista di [start, end] già coperti (unione)
+    const covered = []  // lista di [start, end] già coperti
 
     for (const { start, end, count } of recs) {
       if (start >= end) continue
 
-      // Calcola i ms di [start, end] NON ancora coperti
       let uncoveredMs = 0
       let cur = start
       for (const [cs, ce] of covered) {
@@ -273,8 +286,6 @@ export const useHealthSyncStore = defineStore('healthsync', () => {
       if (totalMs > 0 && uncoveredMs > 0) {
         total += count * (uncoveredMs / totalMs)
       }
-
-      // Aggiunge [start, end] alla lista dei coperti (merge)
       addInterval(covered, start, end)
     }
 

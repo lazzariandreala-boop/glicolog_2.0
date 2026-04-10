@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Wrap the foreground PNG with padding so it renders at natural size
+     within the 108dp adaptive-icon canvas.
+     Formula: inset = (108dp - 48dp) / 2 / 108dp ≈ 27.8% → 28% -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@mipmap/ic_launcher_foreground"
+    android:insetLeft="28%"
+    android:insetRight="28%"
+    android:insetTop="28%"
+    android:insetBottom="28%" />

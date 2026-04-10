@@ -13,7 +13,7 @@
             <path d="M21 3v5h-5"/>
           </svg>
         </button>
-        <button class="hs-sum-btn" @click="app.openPanelFor('healthsync')" title="Impostazioni">⚙️</button>
+        <button class="hs-sum-btn" @click="app.openPanelFor('healthsync')" title="Impostazioni" style="margin-top: -3px;">⚙️</button>
       </div>
     </div>
 
@@ -21,7 +21,7 @@
     <div v-if="!isCapacitor" class="hs-not-connected">
       <div class="hs-nc-ico">📱</div>
       <div class="hs-nc-title">Disponibile nell'app Android</div>
-      <div class="hs-nc-sub">I dati vengono letti direttamente da Health Connect sul tuo Google Pixel.</div>
+      <div class="hs-nc-sub">I dati vengono letti direttamente da Health Connect sul tuo Dispositivo.</div>
     </div>
 
     <!-- CTA: HC non disponibile -->
